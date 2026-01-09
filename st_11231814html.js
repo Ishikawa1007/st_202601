@@ -126,7 +126,9 @@ function checkKeyInput() {
   if (!fingertip) return;
   
   for (const [key, pos] of Object.entries(keyboardLayout)) {
-    const dist = Math.hypot(fingertip.xPx - pos.x, fingertip.yPx - pos.y);
+    const fx = (fingertip.xDiv !== undefined) ? fingertip.xDiv : fingertip.xPx;
+    const fy = (fingertip.yDiv !== undefined) ? fingertip.yDiv : fingertip.yPx;
+    const dist = Math.hypot(fx - pos.x, fy - pos.y);
     if (dist <= KEYBOARD_DETECTION_DISTANCE) {
       inputBuffer += key;
       lastInputTime = now;
@@ -537,10 +539,11 @@ window.mpGetFingertip = function(index, opts){
   opts = opts || {};
   const ft = window.latestFingertips && window.latestFingertips[index];
   if (!ft) return null;
-  if (opts.space === 'canvas') return { xPx: ft.xPx, yPx: ft.yPx, z: ft.z, rawX: ft.rawX };
+  if (opts.space === 'canvas') return { xPx: ft.xPx, yPx: ft.yPx, xDiv: ft.xDiv, yDiv: ft.yDiv, z: ft.z, rawX: ft.rawX };
   if (opts.space === 'fixed'){
     const w = opts.width || 640; const h = opts.height || 480;
-    return { x: ft.x, y: ft.y, z: ft.z, xPx: ft.x * w, yPx: ft.y * h, rawX: ft.rawX };
+    const xPxFixed = ft.x * w; const yPxFixed = ft.y * h;
+    return { x: ft.x, y: ft.y, z: ft.z, xPx: xPxFixed, yPx: yPxFixed, xDiv: Math.round(xPxFixed/5.1), yDiv: Math.round(yPxFixed/5.1), rawX: ft.rawX };
   }
   return { x: ft.x, y: ft.y, z: ft.z, rawX: ft.rawX };
 };
@@ -584,11 +587,14 @@ function onHandsResults(results){
         const xNorm = (window.mpUseMirror) ? (1 - rawX) : rawX;
         const yNorm = lm.y;
         const xPx = xNorm * canvas.width; const yPx = yNorm * canvas.height;
+        // Mediapipe座標を5.1で割って四捨五入した整数座標を追加
+        const xDiv = Math.round(xPx / 5.1);
+        const yDiv = Math.round(yPx / 5.1);
         ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(xPx, yPx, 6, 0, 2*Math.PI); ctx.fill();
         ctx.fillStyle = 'black'; ctx.font='12px sans-serif'; ctx.fillText(String(i), xPx+6, yPx-6);
         // 正規化座標 (0..1) とピクセル座標、Z (奥行き, Mediapipe の規約で負はカメラ側に近い)
         // 保存: 正規化座標 (0..1) は反転済み x を採用、rawX を rawX として保持
-        detected[i] = { x: xNorm, y: yNorm, z: lm.z, xPx: xPx, yPx: yPx, rawX: rawX };
+        detected[i] = { x: xNorm, y: yNorm, z: lm.z, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv, rawX: rawX };
       });
       // 1手のみ取得する場合は break してもよい
     }
