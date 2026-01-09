@@ -24,10 +24,16 @@
         <header>
             <h2 class="title">モード</h2>
         </header>
-        <input type="range" class="tslider" min="1" max="5" value="3">
-        <p id="tsliderLabel" class="tsliderText">3ふん</p>
-        <input type="range" class="lslider" min="1" max="5" value="3">
-        <p id="lsliderLabel" class="lsliderText">ながいことば</p>
+        <div class="sliderRow">
+            <span class="sliderLabel">じかん</span>
+            <input type="range" class="tslider" min="1" max="5" value="3">
+            <p id="tsliderLabel" class="tsliderText">3ふん</p>
+        </div>
+        <div class="sliderRow">
+            <span class="sliderLabel">ことば</span>
+            <input type="range" class="lslider" min="1" max="5" value="3">
+            <p id="lsliderLabel" class="lsliderText">ながいことば</p>
+        </div>
         
         <div class="buttonRow">
             <button type="button" class="backbutton_a">

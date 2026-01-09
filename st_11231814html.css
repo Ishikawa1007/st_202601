@@ -34,6 +34,37 @@ html, body {
 }
 
 /*p2*/
+.sliderRow {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  width: 90%;
+  max-width: 500px;
+  margin: 15px 0;
+}
+
+.sliderLabel {
+  flex: 0 0 auto;
+  font-size: 18px;
+  min-width: 80px;
+}
+
+.tslider,
+.lslider {
+  flex: 1 1 auto;
+  min-width: 150px;
+}
+
+.tsliderText,
+.lsliderText {
+  flex: 0 0 auto;
+  font-size: 16px;
+  min-width: 80px;
+  text-align: right;
+  margin: 0;
+}
+
 .buttonRow {
   display: flex;
   gap: 16px; /* ボタン間のスペース */
