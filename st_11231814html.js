@@ -132,9 +132,9 @@ function getWordsForLevel(level) {
       'テレビゲーム','ソーシャルメディア','オンラインショッピング','デジタルカメラ','ビデオカメラ',
       'バスケットボール','テニスラケット','サッカーボール','ゴールポスト','ゴルフクラブ',
       'スイミングプール','ランニングシューズ','サーフボード','スケートボード','スノーボード', //50
-      'たけやぶやけた','わたしまけましたわ','','','',
+      '','','','','',
     ],
-    //料理、イベント・式典、IT用語、スポーツ用品、回文
+    //料理、イベント・式典、IT用語、スポーツ用品
     //5文字以上
     4: ['いぬがあるいている。',    'ねこがねている 。',
     'あめがふってきた。',    'きょうはいいてんき。',
@@ -307,6 +307,64 @@ initPages();
 // --- Mediapipe Hands (page3 用) ---
 let mpCamera = null;
 let mpHands = null;
+// 最新の指先座標（外部から参照できるようにグローバルに保持）
+// 形式: {4:{x:0.12,xPx:123,z:-0.03},8:{...},...}
+window.latestFingertips = {};
+// フロントカメラで左右反転する場合は true にする（デフォルト true）
+window.mpUseMirror = true;
+// ユーティリティ関数: 座標変換・取得
+// mpSetMirror(flag): ミラー反転設定を切り替え
+window.mpSetMirror = function(flag){ window.mpUseMirror = !!flag; };
+
+// mpNormToPixel(xNorm,yNorm,opts) -> {xPx,yPx}
+window.mpNormToPixel = function(xNorm, yNorm, opts){
+  opts = opts || {};
+  const canvas = document.getElementById('mp_output_canvas');
+  const w = opts.width || (canvas && canvas.width) || 640;
+  const h = opts.height || (canvas && canvas.height) || 480;
+  return { xPx: xNorm * w, yPx: yNorm * h };
+};
+
+// mpPixelToNorm(xPx,yPx,opts) -> {x,y}
+window.mpPixelToNorm = function(xPx, yPx, opts){
+  opts = opts || {};
+  const canvas = document.getElementById('mp_output_canvas');
+  const w = opts.width || (canvas && canvas.width) || 640;
+  const h = opts.height || (canvas && canvas.height) || 480;
+  return { x: xPx / w, y: yPx / h };
+};
+
+// mpGetFingertip(index, opts) -> fingertip object or null
+// opts.space: 'norm'|'canvas'|'fixed' (default 'norm')
+// if 'fixed', provide opts.width/opts.height
+window.mpGetFingertip = function(index, opts){
+  opts = opts || {};
+  const ft = window.latestFingertips && window.latestFingertips[index];
+  if (!ft) return null;
+  if (opts.space === 'canvas') return { xPx: ft.xPx, yPx: ft.yPx, z: ft.z, rawX: ft.rawX };
+  if (opts.space === 'fixed'){
+    const w = opts.width || 640; const h = opts.height || 480;
+    return { x: ft.x, y: ft.y, z: ft.z, xPx: ft.x * w, yPx: ft.y * h, rawX: ft.rawX };
+  }
+  return { x: ft.x, y: ft.y, z: ft.z, rawX: ft.rawX };
+};
+
+// mpDistance(i1,i2,opts) -> number (or null)
+// opts.space: 'norm'|'canvas'|'fixed' (default 'canvas')
+window.mpDistance = function(i1,i2, opts){
+  opts = opts || {};
+  const space = opts.space || 'canvas';
+  const a = window.mpGetFingertip(i1, { space: space, width: opts.width, height: opts.height });
+  const b = window.mpGetFingertip(i2, { space: space, width: opts.width, height: opts.height });
+  if (!a || !b) return null;
+  if (space === 'norm') return Math.hypot(a.x - b.x, a.y - b.y);
+  // canvas or fixed: use pixel values
+  const ax = (a.xPx !== undefined) ? a.xPx : (a.x * (opts.width || 640));
+  const ay = (a.yPx !== undefined) ? a.yPx : (a.y * (opts.height || 480));
+  const bx = (b.xPx !== undefined) ? b.xPx : (b.x * (opts.width || 640));
+  const by = (b.yPx !== undefined) ? b.yPx : (b.y * (opts.height || 480));
+  return Math.hypot(ax - bx, ay - by);
+};
 function onHandsResults(results){
   const canvas = document.getElementById('mp_output_canvas');
   const status = document.getElementById('mp_status');
@@ -316,17 +374,33 @@ function onHandsResults(results){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   if (results.image) ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
   if (results.multiHandLandmarks && results.multiHandLandmarks.length>0){
+    // 今回は最大1手想定だが、複数手にも対応
+    const fingertipIndices = [4,8,12,16,20];
+    const detected = {};
     for (const landmarks of results.multiHandLandmarks){
       if (typeof drawConnectors === 'function') drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color:'#00FF00', lineWidth:2});
       if (typeof drawLandmarks === 'function') drawLandmarks(ctx, landmarks, {color:'#FF0000', lineWidth:1});
       // 指先ランドマークを強調: 4,8,12,16,20
-      [4,8,12,16,20].forEach(i=>{
+      fingertipIndices.forEach(i=>{
         const lm = landmarks[i]; if (!lm) return;
-        const x = lm.x * canvas.width; const y = lm.y * canvas.height;
-        ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(x, y, 6, 0, 2*Math.PI); ctx.fill();
-        ctx.fillStyle = 'black'; ctx.font='12px sans-serif'; ctx.fillText(String(i), x+6, y-6);
+        // フロントカメラの場合は X を反転して扱う（x' = 1 - x）
+        const rawX = lm.x;
+        const xNorm = (window.mpUseMirror) ? (1 - rawX) : rawX;
+        const yNorm = lm.y;
+        const xPx = xNorm * canvas.width; const yPx = yNorm * canvas.height;
+        ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(xPx, yPx, 6, 0, 2*Math.PI); ctx.fill();
+        ctx.fillStyle = 'black'; ctx.font='12px sans-serif'; ctx.fillText(String(i), xPx+6, yPx-6);
+        // 正規化座標 (0..1) とピクセル座標、Z (奥行き, Mediapipe の規約で負はカメラ側に近い)
+        // 保存: 正規化座標 (0..1) は反転済み x を採用、rawX を rawX として保持
+        detected[i] = { x: xNorm, y: yNorm, z: lm.z, xPx: xPx, yPx: yPx, rawX: rawX };
       });
+      // 1手のみ取得する場合は break してもよい
     }
+    // グローバルに保存して他の処理から参照可能にする
+    try{ window.latestFingertips = detected; }catch(e){}
+    // 任意で DOM に表示（存在すれば）
+    const infoEl = document.getElementById('mp_fingertips');
+    if (infoEl) infoEl.textContent = JSON.stringify(detected);
     if (status) status.textContent = '手検出: OK';
   } else {
     if (status) status.textContent = '手が見つかりません';
@@ -343,13 +417,24 @@ function startMediapipeHands(){
     if (status) status.textContent = 'カメラ要素が見つかりません';
     return;
   }
+  // キャンバスをビデオの実解像度に合わせる (ピクセル座標を正確に扱うため)
+  function setCanvasSizeToVideo(){
+    const vw = video.videoWidth || 640;
+    const vh = video.videoHeight || 480;
+    if (canvas.width !== vw || canvas.height !== vh){
+      canvas.width = vw;
+      canvas.height = vh;
+    }
+  }
+  if (video.readyState >= 2) setCanvasSizeToVideo();
+  else video.addEventListener('loadedmetadata', setCanvasSizeToVideo, {once:true});
   mpHands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
   mpHands.setOptions({maxNumHands:1, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
   mpHands.onResults(onHandsResults);
   mpCamera = new Camera(video, {
     onFrame: async () => { await mpHands.send({image: video}); },
-    width: 640,
-    height: 480
+    width: canvas.width || 640,
+    height: canvas.height || 480
   });
   mpCamera.start().then(()=>{ if (status) status.textContent = 'カメラ接続中'; }).catch(err=>{ if (status) status.textContent = 'カメラ開始失敗'; console.error(err); });
 }
@@ -365,17 +450,48 @@ function stopMediapipeHands(){
   if (status) status.textContent = 'カメラ停止';
 }
 
-
-
-
-  let p=10, lv="C", lng="ながい文",t=10,n_t=50,n_f=10,spd=t_p/t,t_p=n_t/(n_t+n_f),f_p=1-t_p;
-document.getElementById("point").textContent = p;
-document.getElementById("revel").textContent = lv;
-document.getElementById("length").textContent = lng;
-document.getElementById("time").textContent =t;
-document.getElementById("speed").textContent = spd;
-document.getElementById("n_true").textContent = n_t;
-document.getElementById("n_false").textContent = n_f;
-document.getElementById("t_per").textContent = t_p;
-document.getElementById("f_per").textContent = f_p;
-// ...existing code...
+// 追加: スマホ縦向きリマインダー (オーバーレイ)
+(function(){
+  function isMobileDevice(){
+    return ('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+  }
+  const REMINDER_ID = 'orientationReminderOverlay';
+  function createOverlayIfNeeded(){
+    if (document.getElementById(REMINDER_ID)) return;
+    const wrapper = document.createElement('div');
+    wrapper.id = REMINDER_ID;
+    Object.assign(wrapper.style, {
+      position: 'fixed', left: '0', top: '0', width: '100%', height: '100%',
+      display: 'none', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.5)', zIndex: '9999', padding: '12px', boxSizing: 'border-box'
+    });
+    wrapper.innerHTML = [
+      '<div role="dialog" aria-modal="true" style="background:#fff;color:#000;padding:16px;border-radius:10px;max-width:520px;width:100%;text-align:center;font-size:16px;line-height:1.4;">',
+      '  <div>画面が縦向きになっています。横向きでプレイすると快適です。</div>',
+      '  <div style="height:10px"></div>',
+      `  <button id="${REMINDER_ID}_close" style="padding:8px 14px;font-size:15px;border-radius:6px;border:0;background:#1976d2;color:#fff;cursor:pointer;">閉じる</button>`,
+      '</div>'
+    ].join('');
+    document.body.appendChild(wrapper);
+    document.getElementById(`${REMINDER_ID}_close`).addEventListener('click', ()=>{ wrapper.style.display='none'; });
+  }
+  function showOverlay(){
+    createOverlayIfNeeded();
+    const el = document.getElementById(REMINDER_ID);
+    if (el) el.style.display = 'flex';
+  }
+  function hideOverlay(){
+    const el = document.getElementById(REMINDER_ID);
+    if (el) el.style.display = 'none';
+  }
+  function checkOrientationAndRemind(){
+    if (!isMobileDevice()) { hideOverlay(); return; }
+    const isPortrait = (window.matchMedia && window.matchMedia('(orientation: portrait)').matches) || (window.innerHeight > window.innerWidth);
+    if (isPortrait) showOverlay(); else hideOverlay();
+  }
+  window.addEventListener('orientationchange', checkOrientationAndRemind, {passive:true});
+  window.addEventListener('resize', checkOrientationAndRemind, {passive:true});
+  document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) checkOrientationAndRemind(); });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', checkOrientationAndRemind);
+  else checkOrientationAndRemind();
+})();
