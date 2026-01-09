@@ -19,7 +19,7 @@ html, body {
   position:relative;
 }
 
-
+/*p1*/
 .title {
   margin: 0;
   font-size: 50px;
@@ -32,6 +32,16 @@ html, body {
   padding: 10px 20px;
   margin: 0;
 }
+
+/*p2*/
+.buttonRow {
+  display: flex;
+  gap: 16px; /* ボタン間のスペース */
+    align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+}
+
 .backbutton_a{
   font-size: 20px;
   padding: 10px 20px;
@@ -44,6 +54,16 @@ html, body {
   margin:0;
 }
 
+/*p3*/
+.buttonRow2 {
+  display: flex;
+  gap: 16px; /* ボタン間のスペース */
+    align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+
 .backbutton_b{
   font-size: 20px;
   padding: 10px 20px;
@@ -55,29 +75,12 @@ html, body {
   padding: 10px 20px;
   margin:0;
 }
-
+/*p4*/
 .stopbutton{
   font-size: 20px;
   padding: 10px 20px;
   margin:0;
 }
-
-.buttonRow {
-  display: flex;
-  gap: 16px; /* ボタン間のスペース */
-    align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.buttonRow2 {
-  display: flex;
-  gap: 16px; /* ボタン間のスペース */
-    align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-}
-
 
 .timerLabel{
   position: absolute;

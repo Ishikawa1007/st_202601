@@ -35,6 +35,194 @@ function updateLevelLabel(val) {
 if (tslider) { updateSliderLabel(tslider.value); tslider.addEventListener('input', e=>updateSliderLabel(e.target.value)); }
 if (lslider) { updateLevelLabel(lslider.value); lslider.addEventListener('input', e=>updateLevelLabel(e.target.value)); }
 
+// --- キーボード座標定義 ---
+const keyboardLayout = {
+  '1': {x: 518, y: 1702},
+  '2': {x: 715, y: 1705},
+  '3': {x: 907, y: 1706},
+  '4': {x: 1102, y: 1709},
+  '5': {x: 1292, y: 1712},
+  '6': {x: 1485, y: 1714},
+  '7': {x: 1674, y: 1721},
+  '8': {x: 1860, y: 1722},
+  '9': {x: 2060, y: 1727},
+  '0': {x: 2254, y: 1732},
+  '-': {x: 2457, y: 1739},
+  '^': {x: 2653, y: 1742},
+  '\\': {x: 2854, y: 1747},
+  'bs': {x: 3050, y: 1748},
+  'q': {x: 696, y: 1682},
+  'w': {x: 865, y: 1684},
+  'e': {x: 1050, y: 1685},
+  'r': {x: 1226, y: 1688},
+  't': {x: 1406, y: 1691},
+  'y': {x: 1586, y: 1695},
+  'u': {x: 1761, y: 1698},
+  'i': {x: 1952, y: 1701},
+  'o': {x: 2127, y: 1703},
+  'p': {x: 2309, y: 1709},
+  '@': {x: 2493, y: 1714},
+  '[': {x: 2671, y: 1718},
+  'ent': {x: 2874, y: 1733},
+  'a': {x: 791, y: 1658},
+  's': {x: 969, y: 1665},
+  'd': {x: 1138, y: 1666},
+  'f': {x: 1300, y: 1667},
+  'g': {x: 1470, y: 1671},
+  'h': {x: 1639, y: 1674},
+  'j': {x: 1808, y: 1677},
+  'k': {x: 1963, y: 1679},
+  'l': {x: 2135, y: 1683},
+  ';': {x: 2302, y: 1687},
+  ':': {x: 2489, y: 1692},
+  ']': {x: 2659, y: 1697},
+  'z': {x: 931, y: 1648},
+  'x': {x: 1089, y: 1649},
+  'c': {x: 1243, y: 1650},
+  'v': {x: 1415, y: 1653},
+  'b': {x: 1560, y: 1656},
+  'n': {x: 1695, y: 1658},
+  'm': {x: 1881, y: 1661},
+  ',': {x: 2034, y: 1664},
+  '.': {x: 2191, y: 1668},
+  '/': {x: 2352, y: 1672}
+};
+
+const KEYBOARD_DETECTION_DISTANCE = 80; // ピクセル単位での検出距離
+let inputBuffer = '';
+let lastInputTime = 0;
+const INPUT_DEBOUNCE = 300; // ミリ秒
+
+// キーボードを描画する関数
+function drawKeyboardLayout(canvas) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.fillStyle = 'rgba(100, 100, 255, 0.3)';
+  ctx.strokeStyle = 'blue';
+  ctx.lineWidth = 2;
+  for (const [key, pos] of Object.entries(keyboardLayout)) {
+    const radius = KEYBOARD_DETECTION_DISTANCE / 2;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = 'blue';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(key, pos.x, pos.y);
+    ctx.fillStyle = 'rgba(100, 100, 255, 0.3)';
+  }
+  ctx.restore();
+}
+
+// キー入力を検出
+function checkKeyInput() {
+  const now = Date.now();
+  if (now - lastInputTime < INPUT_DEBOUNCE) return;
+  
+  const fingertip = window.mpGetFingertip(8, { space: 'canvas' }); // インデックスフィンガー
+  if (!fingertip) return;
+  
+  for (const [key, pos] of Object.entries(keyboardLayout)) {
+    const dist = Math.hypot(fingertip.xPx - pos.x, fingertip.yPx - pos.y);
+    if (dist <= KEYBOARD_DETECTION_DISTANCE) {
+      inputBuffer += key;
+      lastInputTime = now;
+      updateInputDisplay();
+      console.log(`Key detected: ${key}, Buffer: ${inputBuffer}`);
+      checkAnswer();
+      break;
+    }
+  }
+}
+
+// 入力バッファを画面に表示
+function updateInputDisplay() {
+  const el = document.getElementById('inputBuffer');
+  if (el) el.textContent = `入力: ${inputBuffer}`;
+}
+
+// 正誤判定
+function checkAnswer() {
+  const romaEl = document.getElementById('romajiLabel');
+  if (!romaEl) return;
+  const expectedRomaji = romaEl.textContent.trim();
+  
+  if (!expectedRomaji) return;
+  
+  // 入力がローマ字と一致したか確認
+  if (inputBuffer === expectedRomaji) {
+    console.log('✓ 正解!');
+    recordCorrectAnswer(inputBuffer);
+    inputBuffer = '';
+    updateInputDisplay();
+    nextWord();
+  } else if (expectedRomaji.startsWith(inputBuffer)) {
+    // 入力がまだ途中の可能性
+    console.log('途中入力...');
+  } else {
+    // 誤入力の場合
+    console.log('✗ 不正解!');
+    recordIncorrectAnswer(inputBuffer);
+    inputBuffer = '';
+    updateInputDisplay();
+  }
+}
+
+// 正解・不正解を記録
+let correctCount = 0;
+let incorrectCount = 0;
+
+function recordCorrectAnswer(answer) {
+  correctCount++;
+  console.log(`正解数: ${correctCount}`);
+}
+
+function recordIncorrectAnswer(answer) {
+  incorrectCount++;
+  console.log(`不正解数: ${incorrectCount}`);
+}
+
+// 結果表示
+function showResults() {
+  const total = correctCount + incorrectCount;
+  const correctPercent = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+  const incorrectPercent = 100 - correctPercent;
+  const score = correctCount * 10 - incorrectCount * 5; // スコア計算例
+  
+  // page5 の結果を表示
+  const pointEl = document.getElementById('point');
+  const levelEl = document.getElementById('revel');
+  const lengthEl = document.getElementById('length');
+  const timeEl = document.getElementById('time');
+  const speedEl = document.getElementById('speed');
+  const nTrueEl = document.getElementById('n_true');
+  const nFalseEl = document.getElementById('n_false');
+  const tPerEl = document.getElementById('t_per');
+  const fPerEl = document.getElementById('f_per');
+  
+  if (pointEl) pointEl.textContent = Math.max(0, score);
+  if (levelEl) levelEl.textContent = lslider ? lslider.value : '1';
+  if (lengthEl) lengthEl.textContent = total;
+  if (timeEl) timeEl.textContent = tslider ? `${tslider.value}分` : '1分';
+  if (speedEl) speedEl.textContent = total > 0 ? Math.round(total / (tslider ? tslider.value : 1)) : 0;
+  if (nTrueEl) nTrueEl.textContent = correctCount;
+  if (nFalseEl) nFalseEl.textContent = incorrectCount;
+  if (tPerEl) tPerEl.textContent = `${correctPercent}%`;
+  if (fPerEl) fPerEl.textContent = `${incorrectPercent}%`;
+}
+
+// ゲーム状態リセット
+function resetGameState() {
+  correctCount = 0;
+  incorrectCount = 0;
+  inputBuffer = '';
+  updateInputDisplay();
+  stopMediapipeHands();
+}
+
 // wanakana 利用判定 + フォールバック
 const useWanakana = typeof window !== 'undefined' && window.wanakana && typeof wanakana.toRomaji === 'function';
 function hiraganaToRomaji(input) {
@@ -251,7 +439,8 @@ function startTimer(durationMinutes){
   timer = setInterval(()=>{
     if (timeRemaining <= 0){
       stopTimer();
-      // 時間切れで page5 へ
+      // 時間切れで page5 へ + 結果表示
+      showResults();
       if (page4) page4.style.display = 'none';
       if (page5) page5.style.display = 'flex';
       return;
@@ -269,6 +458,11 @@ if (backButton_b) backButton_b.addEventListener('click', ()=>{ if (page3) { page
 
 // pracButton: page3 -> page4、タイマ開始、語リストセット
 if (pracButton) pracButton.addEventListener('click', ()=>{
+  // ゲーム状態リセット
+  correctCount = 0;
+  incorrectCount = 0;
+  inputBuffer = '';
+  updateInputDisplay();
   // 開始前の準備ページから移るので Mediapipe を止める
   stopMediapipeHands();
   if (page3) page3.style.display='none';
@@ -283,6 +477,7 @@ if (pracButton) pracButton.addEventListener('click', ()=>{
 // stopbutton: タイマー停止してホームへ
 if (stopbutton) stopbutton.addEventListener('click', ()=>{
   stopTimer();
+  resetGameState();
   if (page4) page4.style.display='none';
   if (page1) page1.style.display='flex';
 });
@@ -290,6 +485,7 @@ if (stopbutton) stopbutton.addEventListener('click', ()=>{
 // homebutton: page5 -> page1（タイマー停止）
 if (homebutton) homebutton.addEventListener('click', ()=>{
   stopTimer();
+  resetGameState();
   if (page5) page5.style.display='none';
   if (page1) page1.style.display='flex';
 });
@@ -398,6 +594,10 @@ function onHandsResults(results){
     }
     // グローバルに保存して他の処理から参照可能にする
     try{ window.latestFingertips = detected; }catch(e){}
+    // キーボードを描画
+    drawKeyboardLayout(canvas);
+    // キー入力を検出
+    checkKeyInput();
     // 任意で DOM に表示（存在すれば）
     const infoEl = document.getElementById('mp_fingertips');
     if (infoEl) infoEl.textContent = JSON.stringify(detected);
