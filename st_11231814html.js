@@ -673,7 +673,7 @@ function stopMediapipeHands(){
     });
     wrapper.innerHTML = [
       '<div role="dialog" aria-modal="true" style="background:#fff;color:#000;padding:16px;border-radius:10px;max-width:520px;width:100%;text-align:center;font-size:16px;line-height:1.4;">',
-      '  <div>画面が縦向きになっています。横向きでプレイすると快適です。</div>',
+      '  <div>がめんがたてむきです。よこむきでプレイしてください。</div>',
       '  <div style="height:10px"></div>',
       `  <button id="${REMINDER_ID}_close" style="padding:8px 14px;font-size:15px;border-radius:6px;border:0;background:#1976d2;color:#fff;cursor:pointer;">閉じる</button>`,
       '</div>'
