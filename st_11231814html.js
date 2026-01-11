@@ -505,6 +505,7 @@ initPages();
 // --- Mediapipe Hands (page3 用) ---
 let mpCamera = null;
 let mpHands = null;
+let mpCanvasFallbackTimer = null;
 // 最新の指先座標（外部から参照できるようにグローバルに保持）
 // 形式: {4:{x:0.12,xPx:123,z:-0.03},8:{...},...}
 window.latestFingertips = {};
@@ -565,6 +566,9 @@ window.mpDistance = function(i1,i2, opts){
   return Math.hypot(ax - bx, ay - by);
 };
 function onHandsResults(results){
+  // mark that hands results arrived and stop fallback drawing if any
+  try{ window._mpHandsRendered = true; }catch(e){}
+  if (mpCanvasFallbackTimer){ clearInterval(mpCanvasFallbackTimer); mpCanvasFallbackTimer = null; }
   const canvas = document.getElementById('mp_output_canvas');
   const status = document.getElementById('mp_status');
   if (!canvas) return;
@@ -657,7 +661,23 @@ function startMediapipeHands(){
     width: canvas.width || 640,
     height: canvas.height || 480
   });
-  mpCamera.start().then(()=>{ if (status) status.textContent = 'カメラ接続中'; console.log('mpCamera.start() succeeded'); }).catch(err=>{ if (status) status.textContent = 'カメラ開始失敗'; console.error('mpCamera.start() failed:', err); });
+  mpCamera.start().then(()=>{
+    if (status) status.textContent = 'カメラ接続中';
+    console.log('mpCamera.start() succeeded');
+    // フォールバック: onHandsResults が呼ばれない場合でも video を canvas に描画する
+    if (!window._mpHandsRendered && !mpCanvasFallbackTimer){
+      mpCanvasFallbackTimer = setInterval(()=>{
+        try{
+          if (video && canvas && video.videoWidth>0 && video.videoHeight>0){
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const st = document.getElementById('mp_status'); if (st) st.textContent = 'video再生中（hands未検出）';
+          }
+        }catch(e){ console.error('fallback draw error', e); }
+      }, 150);
+    }
+  }).catch(err=>{ if (status) status.textContent = 'カメラ開始失敗'; console.error('mpCamera.start() failed:', err); });
 }
 
 function stopMediapipeHands(){
@@ -665,6 +685,7 @@ function stopMediapipeHands(){
   mpCamera = null;
   try{ if (mpHands && typeof mpHands.close === 'function') mpHands.close(); }catch(e){}
   mpHands = null;
+  if (mpCanvasFallbackTimer){ clearInterval(mpCanvasFallbackTimer); mpCanvasFallbackTimer = null; }
   const canvas = document.getElementById('mp_output_canvas');
   const status = document.getElementById('mp_status');
   if (canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
