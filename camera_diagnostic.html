@@ -21,7 +21,9 @@
   <div id="log">—</div>
 
 <script>
-const L = msg=>{ console.log(msg); const d=document.getElementById('log'); d.textContent = (d.textContent==='—'?'':d.textContent+'\n') + msg; };
+const L = msg=>{ try{ console.log(msg); const d=document.getElementById('log'); d.textContent = (d.textContent==='—'?'':d.textContent+'\n') + msg; }catch(e){} };
+window.addEventListener('error', e=>{ L('window.error: '+(e && e.message)); });
+window.addEventListener('unhandledrejection', e=>{ L('unhandledrejection: '+(e && e.reason && e.reason.message ? e.reason.message : String(e.reason))); });
 async function enumerateDevices(){
   try{
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -35,18 +37,34 @@ async function enumerateDevices(){
 
 let stream = null;
 async function start(){
+  L('Start clicked');
   const sel = document.getElementById('videoSelect');
   const deviceId = sel.value || undefined;
   const constraints = { video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' } };
   L('getUserMedia constraints: ' + JSON.stringify(constraints));
-  try{
-    stream = await navigator.mediaDevices.getUserMedia(constraints);
-    document.getElementById('v').srcObject = stream;
-    L('stream started');
-    const tracks = stream.getVideoTracks(); L('tracks: '+tracks.length+'; label: '+(tracks[0] && tracks[0].label));
-  }catch(err){
-    L('getUserMedia error: ' + err.name + ' — ' + err.message);
+  let attempted = 0;
+  const tryGet = async (c)=>{
+    attempted++;
+    L('attempt #' + attempted + ' with ' + JSON.stringify(c));
+    try{
+      stream = await navigator.mediaDevices.getUserMedia(c);
+      document.getElementById('v').srcObject = stream;
+      L('stream started');
+      const tracks = stream.getVideoTracks(); L('tracks: '+tracks.length+'; label: '+(tracks[0] && tracks[0].label));
+      return true;
+    }catch(err){
+      L('getUserMedia error: ' + err.name + ' — ' + err.message);
+      return err;
+    }
+  };
+  const primary = await tryGet(constraints);
+  if (primary !== true) {
+    const fb1 = await tryGet({video:true});
+    if (fb1 !== true) {
+      await tryGet({video:{width:{ideal:1280},height:{ideal:720},facingMode:'environment'}});
+    }
   }
+  setTimeout(()=>{ if (!stream) L('timeout: no stream after 5s'); }, 5000);
 }
 function stop(){ if (stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; document.getElementById('v').srcObject=null; L('stream stopped'); } }
 
