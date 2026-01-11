@@ -571,6 +571,17 @@ function onHandsResults(results){
   const ctx = canvas.getContext('2d');
   ctx.save();
   ctx.clearRect(0,0,canvas.width,canvas.height);
+  
+  // 常に video から直接 canvas に描画（Hands 検出の有無に関わらず）
+  const video = document.getElementById('mp_input_video');
+  if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+    try {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    } catch (e) {
+      console.error('drawImage from video failed:', e);
+    }
+  }
+  
   if (results.image) ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
   if (results.multiHandLandmarks && results.multiHandLandmarks.length>0){
     // 今回は最大1手想定だが、複数手にも対応
@@ -609,7 +620,7 @@ function onHandsResults(results){
     if (infoEl) infoEl.textContent = JSON.stringify(detected);
     if (status) status.textContent = '手検出: OK';
   } else {
-    if (status) status.textContent = '手が見つかりません';
+    if (status) status.textContent = '手が見つかりません（video側は再生中）';
   }
   ctx.restore();
 }
