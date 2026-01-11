@@ -465,8 +465,8 @@ if (pracButton) pracButton.addEventListener('click', ()=>{
   incorrectCount = 0;
   inputBuffer = '';
   updateInputDisplay();
-  // 開始前の準備ページから移るので Mediapipe を止める
-  stopMediapipeHands();
+  // ゲーム中も手検出を継続する（停止していたため page4 で未接続になっていた）
+  if (!mpCamera) startMediapipeHands();
   if (page3) page3.style.display='none';
   if (page4) page4.style.display='flex';
   const mins = tslider ? tslider.value : 1;
