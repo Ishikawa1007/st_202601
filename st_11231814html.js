@@ -621,28 +621,32 @@ function startMediapipeHands(){
   const status = document.getElementById('mp_status');
   if (!video || !canvas) {
     if (status) status.textContent = 'カメラ要素が見つかりません';
+    console.error('startMediapipeHands: video or canvas not found');
     return;
   }
+  console.log('startMediapipeHands: video/canvas found. video.readyState=', video.readyState, 'videoWidth=', video.videoWidth);
   // キャンバスをビデオの実解像度に合わせる (ピクセル座標を正確に扱うため)
   function setCanvasSizeToVideo(){
     const vw = video.videoWidth || 640;
     const vh = video.videoHeight || 480;
+    console.log('setCanvasSizeToVideo: vw='+vw+', vh='+vh+', current canvas:', canvas.width, canvas.height);
     if (canvas.width !== vw || canvas.height !== vh){
       canvas.width = vw;
       canvas.height = vh;
     }
   }
-  if (video.readyState >= 2) setCanvasSizeToVideo();
-  else video.addEventListener('loadedmetadata', setCanvasSizeToVideo, {once:true});
+  if (video.readyState >= 2) { console.log('video ready immediately'); setCanvasSizeToVideo(); }
+  else { console.log('video not ready, waiting for loadedmetadata'); video.addEventListener('loadedmetadata', setCanvasSizeToVideo, {once:true}); }
   mpHands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
   mpHands.setOptions({maxNumHands:1, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
   mpHands.onResults(onHandsResults);
+  console.log('creating Camera with canvas size', canvas.width, canvas.height);
   mpCamera = new Camera(video, {
     onFrame: async () => { await mpHands.send({image: video}); },
     width: canvas.width || 640,
     height: canvas.height || 480
   });
-  mpCamera.start().then(()=>{ if (status) status.textContent = 'カメラ接続中'; }).catch(err=>{ if (status) status.textContent = 'カメラ開始失敗'; console.error(err); });
+  mpCamera.start().then(()=>{ if (status) status.textContent = 'カメラ接続中'; console.log('mpCamera.start() succeeded'); }).catch(err=>{ if (status) status.textContent = 'カメラ開始失敗'; console.error('mpCamera.start() failed:', err); });
 }
 
 function stopMediapipeHands(){
