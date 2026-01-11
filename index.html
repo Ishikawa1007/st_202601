@@ -58,8 +58,8 @@
         </header>
         <!--指が反応しているか、キーが対応して動くか確認(MPにて)**-->
         <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; margin-top:0.5rem;">
-            <!-- video は非表示にして canvas に描画 -->
-            <video id="mp_input_video" style="display:none;" playsinline></video>
+            <!-- video は視覚的に隠す（display:none は再生に問題が出るため） -->
+            <video id="mp_input_video" style="width:1px;height:1px;position:absolute;left:-9999px;" autoplay muted playsinline></video>
             <canvas id="mp_output_canvas" width="720" height="270" style="max-width:90%; border:1px solid #ccc; background:#000;"></canvas>
             <div id="mp_status" style="font-size:0.9rem; color:#333;">カメラ未接続</div>
         </div>
@@ -75,8 +75,8 @@
         <span id="timerLabel" class="timerLabel"></span>
         </div>
         <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; margin-top:0.5rem;">
-            <!-- video は非表示にして canvas に描画 -->
-            <video id="mp_input_video" style="display:none;" playsinline></video>
+            <!-- video は視覚的に隠す（display:none は再生に問題が出るため） -->
+            <video id="mp_input_video" style="width:1px;height:1px;position:absolute;left:-9999px;" autoplay muted playsinline></video>
             <canvas id="mp_output_canvas" width="720" height="270" style="max-width:90%; border:1px solid #ccc; background:#000;"></canvas>
             <div id="mp_status" style="font-size:0.9rem; color:#333;">カメラ未接続</div>
             <div id="inputBuffer" style="font-size:1.5rem; color:#000; background:#ccc; padding:0.5rem; min-height:2rem; border-radius:5px; min-width:200px; text-align:center;">入力:</div>
