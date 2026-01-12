@@ -652,7 +652,7 @@ function startMediapipeHands(){
   }
   if (video.readyState >= 2) { console.log('video ready immediately'); setCanvasSizeToVideo(); }
   else { console.log('video not ready, waiting for loadedmetadata'); video.addEventListener('loadedmetadata', setCanvasSizeToVideo, {once:true}); }
-  mpHands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469541/${file}`});
+  mpHands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@latest/${file}`});
   mpHands.setOptions({maxNumHands:1, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
   mpHands.onResults(onHandsResults);
   console.log('creating Camera with canvas size', canvas.width, canvas.height);
