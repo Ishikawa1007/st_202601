@@ -635,7 +635,9 @@ function startMediapipeHands(){
   const video = document.querySelector('.mp_input_video_active');  
   const canvas = document.querySelector('.mp_output_canvas_active');
 
-  const status = document.getElementById('mp_status');
+  const status =
+    document.getElementById('mp_status_p4') ||
+    document.getElementById('mp_status_p3');
   if (!video || !canvas) {
     if (status) status.textContent = 'カメラ要素が見つかりません';
     console.error('startMediapipeHands: video or canvas not found');
@@ -688,8 +690,14 @@ function stopMediapipeHands(){
   try{ if (mpHands && typeof mpHands.close === 'function') mpHands.close(); }catch(e){}
   mpHands = null;
   if (mpCanvasFallbackTimer){ clearInterval(mpCanvasFallbackTimer); mpCanvasFallbackTimer = null; }
-  const canvas = document.getElementById('mp_output_canvas');
-  const status = document.getElementById('mp_status');
+  　const video =
+    document.querySelector('#page4 .mp_input_video_active') ||
+    document.querySelector('#page3 .mp_input_video_active');
+　　const canvas =
+    document.querySelector('#page4 .mp_output_canvas_active') ||
+    document.querySelector('#page3 .mp_output_canvas_active');
+
+  
   if (canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
   if (status) status.textContent = 'カメラ停止';
 }
@@ -740,4 +748,5 @@ function stopMediapipeHands(){
   else checkOrientationAndRemind();
 
 })();
+
 
