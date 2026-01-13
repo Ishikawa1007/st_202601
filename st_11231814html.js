@@ -518,7 +518,7 @@ window.mpSetMirror = function(flag){ window.mpUseMirror = !!flag; };
 // mpNormToPixel(xNorm,yNorm,opts) -> {xPx,yPx}
 window.mpNormToPixel = function(xNorm, yNorm, opts){
   opts = opts || {};
-  const canvas = document.getElementById('mp_output_canvas');
+　const canvas = document.querySelector('.mp_output_canvas_active');
   const w = opts.width || (canvas && canvas.width) || 640;
   const h = opts.height || (canvas && canvas.height) || 480;
   return { xPx: xNorm * w, yPx: yNorm * h };
@@ -577,7 +577,8 @@ function onHandsResults(results){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   
   // 常に video から直接 canvas に描画（Hands 検出の有無に関わらず）
-const video = document.querySelector('.mp_input_video_active');
+　const video = document.querySelector('.mp_input_video_active');
+
   if (video && video.videoWidth > 0 && video.videoHeight > 0) {
     try {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -631,7 +632,7 @@ const video = document.querySelector('.mp_input_video_active');
 
 function startMediapipeHands(){
   if (mpCamera) return; // 既に開始済み
-  const video = document.querySelector('.mp_input_video_active');
+  const video = document.querySelector('.mp_input_video_active');  
   const canvas = document.querySelector('.mp_output_canvas_active');
 
   const status = document.getElementById('mp_status');
@@ -739,3 +740,4 @@ function stopMediapipeHands(){
   else checkOrientationAndRemind();
 
 })();
+
