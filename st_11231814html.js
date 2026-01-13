@@ -577,7 +577,7 @@ function onHandsResults(results){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   
   // 常に video から直接 canvas に描画（Hands 検出の有無に関わらず）
-  const video = document.getElementById('mp_input_video');
+const video = document.querySelector('.mp_input_video_active');
   if (video && video.videoWidth > 0 && video.videoHeight > 0) {
     try {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -631,8 +631,9 @@ function onHandsResults(results){
 
 function startMediapipeHands(){
   if (mpCamera) return; // 既に開始済み
-  const video = document.getElementById('mp_input_video');
-  const canvas = document.getElementById('mp_output_canvas');
+  const video = document.querySelector('.mp_input_video_active');
+  const canvas = document.querySelector('.mp_output_canvas_active');
+
   const status = document.getElementById('mp_status');
   if (!video || !canvas) {
     if (status) status.textContent = 'カメラ要素が見つかりません';
@@ -653,7 +654,7 @@ function startMediapipeHands(){
   if (video.readyState >= 2) { console.log('video ready immediately'); setCanvasSizeToVideo(); }
   else { console.log('video not ready, waiting for loadedmetadata'); video.addEventListener('loadedmetadata', setCanvasSizeToVideo, {once:true}); }
   mpHands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@latest/${file}`});
-  mpHands.setOptions({maxNumHands:1, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
+  mpHands.setOptions({maxNumHands:2, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
   mpHands.onResults(onHandsResults);
   console.log('creating Camera with canvas size', canvas.width, canvas.height);
   mpCamera = new Camera(video, {
@@ -736,4 +737,5 @@ function stopMediapipeHands(){
   document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) checkOrientationAndRemind(); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', checkOrientationAndRemind);
   else checkOrientationAndRemind();
+
 })();
