@@ -518,7 +518,7 @@ window.mpSetMirror = function(flag){ window.mpUseMirror = !!flag; };
 // mpNormToPixel(xNorm,yNorm,opts) -> {xPx,yPx}
 window.mpNormToPixel = function(xNorm, yNorm, opts){
   opts = opts || {};
-　const canvas = document.querySelector('.mp_output_canvas_active');
+  const canvas = document.querySelector('.mp_output_canvas_active');
   const w = opts.width || (canvas && canvas.width) || 640;
   const h = opts.height || (canvas && canvas.height) || 480;
   return { xPx: xNorm * w, yPx: yNorm * h };
@@ -656,7 +656,14 @@ function startMediapipeHands(){
   }
   if (video.readyState >= 2) { console.log('video ready immediately'); setCanvasSizeToVideo(); }
   else { console.log('video not ready, waiting for loadedmetadata'); video.addEventListener('loadedmetadata', setCanvasSizeToVideo, {once:true}); }
-  mpHands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@latest/${file}`});
+  const MP_VERSION = "0.4.164";
+
+  mpHands = new Hands({
+  locateFile: (file) =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/hands@${MP_VERSION}/${file}`
+});
+
+
   mpHands.setOptions({maxNumHands:2, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
   mpHands.onResults(onHandsResults);
   console.log('creating Camera with canvas size', canvas.width, canvas.height);
