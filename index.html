@@ -6,9 +6,9 @@
     <title>スマホタイピング</title>
     <link rel="stylesheet" href="st_11231814html.css">
     <!-- Mediapipe (Hands, Camera Utils, Drawing Utils) -->
-    <script src="hands.js"></script>
-    <script src="camera_utils.js"></script>
-    <script src="drawing_utils.js"></script>
+　　<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+　　<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+　　<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 
 </head>
 <body>
@@ -61,8 +61,10 @@
         <!--指が反応しているか、キーが対応して動くか確認(MPにて)**-->
         <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; margin-top:0.5rem;">
             <!-- デバッグ用: video を表示 -->
-            <video id="mp_input_video_p3" style="width:200px;height:150px;background:#000;border:1px solid #aaa;" autoplay muted playsinline></video>
-            <canvas id="mp_output_canvas_p3" width="720" height="270" style="max-width:90%; border:1px solid #ccc; background:#000;"></canvas>
+            <video id="mp_input_video_p3" class="mp_input_video_active"　style="width:200px;height:150px;background:#000;border:1px solid #aaa;"　autoplay muted playsinline></video>
+　　　　　　　<canvas id="mp_output_canvas_p3" class="mp_output_canvas_active" width="720" height="270"　style="max-width:90%; border:1px solid #ccc; background:#000;"></canvas>
+
+            
             <div id="mp_status" style="font-size:0.9rem; color:#333;">カメラ未接続</div>
         </div>
     </div>
@@ -82,6 +84,11 @@
             <canvas id="mp_output_canvas_p4" width="720" height="270" style="max-width:90%; border:1px solid #ccc; background:#000;"></canvas>
             <div id="mp_status" style="font-size:0.9rem; color:#333;">カメラ未接続</div>
             <div id="inputBuffer" style="font-size:1.5rem; color:#000; background:#ccc; padding:0.5rem; min-height:2rem; border-radius:5px; min-width:200px; text-align:center;">入力:</div>
+
+　　　　<video id="mp_input_video_p4" class="mp_input_video_active" style="width:200px;height:150px;background:#000;border:1px solid #aaa;" autoplay muted playsinline></video>
+       <canvas id="mp_output_canvas_p4" class="mp_output_canvas_active" width="720" height="270" style="max-width:90%; border:1px solid #ccc; background:#000;"></canvas>
+
+            
         </div>
         <div style="display:flex; align-items:center; justify-content:center; gap:1rem;">
             <button type="button" class="stopbutton">
@@ -139,5 +146,6 @@
     <script src="st_11231814html.js" defer></script>
 </body>
 </html>
+
 
 
