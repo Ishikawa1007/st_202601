@@ -1,5 +1,18 @@
 // ...existing code...
 
+// Mediapipeの準備完了を待つ関数
+async function waitForMediapipe(maxRetries = 50) {
+  for (let i = 0; i < maxRetries; i++) {
+    if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined' && typeof drawConnectors !== 'undefined') {
+      console.log('Mediapipe libraries loaded successfully');
+      return true;
+    }
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  console.error('Mediapipe libraries failed to load after ' + maxRetries * 100 + 'ms');
+  return false;
+}
+
 // ボタン要素
 const stButton = document.querySelector('.stbutton');
 const backButton_a = document.querySelector('.backbutton_a');
@@ -9,7 +22,21 @@ const pracButton = document.querySelector('.pracbutton');
 const stopbutton = document.querySelector('.stopbutton');
 const homebutton = document.querySelector('.homebutton');
 
-// ページ要素
+console.log('Button selection results:');
+console.log('stButton:', stButton);
+console.log('backButton_a:', backButton_a);
+console.log('prepButton:', prepButton);
+console.log('backButton_b:', backButton_b);
+console.log('pracButton:', pracButton);
+console.log('stopbutton:', stopbutton);
+console.log('homebutton:', homebutton);
+
+// Mediapipeの準備を待つ
+waitForMediapipe().then(success => {
+  if (success) {
+    console.log('Ready to use Mediapipe');
+  }
+});// ページ要素
 const page1 = document.getElementById('page1');
 const page2 = document.getElementById('page2');
 const page3 = document.getElementById('page3');
@@ -453,13 +480,14 @@ function startTimer(durationMinutes){
 }
 
 // ページ遷移ハンドラ（要素存在チェック）
-if (stButton) stButton.addEventListener('click', ()=>{ if (page1) page1.style.display='none'; if (page2) page2.style.display='flex'; });
-if (backButton_a) backButton_a.addEventListener('click', ()=>{ if (page2) page2.style.display='none'; if (page1) page1.style.display='flex'; });
-if (prepButton) prepButton.addEventListener('click', ()=>{ if (page2) page2.style.display='none'; if (page3) { page3.style.display='flex'; startMediapipeHands(); } });
-if (backButton_b) backButton_b.addEventListener('click', ()=>{ if (page3) { page3.style.display='none'; stopMediapipeHands(); } if (page2) page2.style.display='flex'; });
+if (stButton) { console.log('stButton click listener attached'); stButton.addEventListener('click', ()=>{ console.log('stButton clicked'); if (page1) page1.style.display='none'; if (page2) page2.style.display='flex'; }); }
+if (backButton_a) { console.log('backButton_a click listener attached'); backButton_a.addEventListener('click', ()=>{ console.log('backButton_a clicked'); if (page2) page2.style.display='none'; if (page1) page1.style.display='flex'; }); }
+if (prepButton) { console.log('prepButton click listener attached'); prepButton.addEventListener('click', ()=>{ console.log('prepButton clicked'); if (page2) page2.style.display='none'; if (page3) { page3.style.display='flex'; startMediapipeHands(); } }); }
+if (backButton_b) { console.log('backButton_b click listener attached'); backButton_b.addEventListener('click', ()=>{ console.log('backButton_b clicked'); if (page3) { page3.style.display='none'; stopMediapipeHands(); } if (page2) page2.style.display='flex'; }); }
 
 // pracButton: page3 -> page4、タイマ開始、語リストセット
-if (pracButton) pracButton.addEventListener('click', ()=>{
+if (pracButton) { console.log('pracButton click listener attached'); pracButton.addEventListener('click', ()=>{
+  console.log('pracButton clicked');
   // ゲーム状態リセット
   correctCount = 0;
   incorrectCount = 0;
@@ -474,23 +502,25 @@ if (pracButton) pracButton.addEventListener('click', ()=>{
   const level = lslider ? Number(lslider.value) : 1;
   const words = getWordsForLevel(level);
   loadWords(words);
-});
+}); }
 
 // stopbutton: タイマー停止してホームへ
-if (stopbutton) stopbutton.addEventListener('click', ()=>{
+if (stopbutton) { console.log('stopbutton click listener attached'); stopbutton.addEventListener('click', ()=>{
+  console.log('stopbutton clicked');
   stopTimer();
   resetGameState();
   if (page4) page4.style.display='none';
   if (page1) page1.style.display='flex';
-});
+}); }
 
 // homebutton: page5 -> page1（タイマー停止）
-if (homebutton) homebutton.addEventListener('click', ()=>{
+if (homebutton) { console.log('homebutton click listener attached'); homebutton.addEventListener('click', ()=>{
+  console.log('homebutton clicked');
   stopTimer();
   resetGameState();
   if (page5) page5.style.display='none';
   if (page1) page1.style.display='flex';
-});
+}); }
 
 // 初期表示: hide all except page1 (必要なら調整)
 function initPages(){
@@ -632,6 +662,17 @@ function onHandsResults(results){
 
 function startMediapipeHands(){
   if (mpCamera) return; // 既に開始済み
+  
+  // Mediapipeが利用可能か確認
+  if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
+    console.error('startMediapipeHands: Mediapipe libraries not loaded yet');
+    const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
+    if (status) status.textContent = 'Mediapipeライブラリの読み込み中...';
+    // 100ms後に再試行
+    setTimeout(() => startMediapipeHands(), 100);
+    return;
+  }
+  
   const video = document.querySelector('.mp_input_video_active');  
   const canvas = document.querySelector('.mp_output_canvas_active');
 
