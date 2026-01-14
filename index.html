@@ -6,20 +6,17 @@
     <link rel="stylesheet" href="st_main.css">
     <!-- wanakana -->
     <script src="https://unpkg.com/wanakana@4.0.2/wanakana.min.js"></script>
-    <!-- Mediapipe (Hands, Camera Utils, Drawing Utils) -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.164/hands.js" onerror="console.error('hands.js failed to load')"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.164/camera_utils.js" onerror="console.error('camera_utils.js failed to load')"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.4.164/drawing_utils.js" onerror="console.error('drawing_utils.js failed to load')"></script>
+    <!-- Mediapipe (Hands, Camera Utils, Drawing Utils) - synchronous load -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.164/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.164/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.4.164/drawing_utils.js"></script>
     <script>
-        // Mediapipeスクリプト読み込みの確認
-        window.addEventListener('load', () => {
-            console.log('Checking Mediapipe libraries:');
-            console.log('Hands:', typeof Hands);
-            console.log('Camera:', typeof Camera);
-            console.log('drawConnectors:', typeof drawConnectors);
-            console.log('drawLandmarks:', typeof drawLandmarks);
-            console.log('HAND_CONNECTIONS:', typeof HAND_CONNECTIONS);
-        });
+        // Mediapipeスクリプト読み込みの確認（headで即座にチェック）
+        console.log('Head script loaded - Checking Mediapipe:');
+        console.log('Hands:', typeof Hands);
+        console.log('Camera:', typeof Camera);
+        console.log('drawConnectors:', typeof drawConnectors);
+        window._mediapipeReady = (typeof Hands !== 'undefined' && typeof Camera !== 'undefined');
     </script>
 </head>
 <body>
@@ -152,5 +149,15 @@
     </button>
     </div>
     <script src="st_all.js" defer></script>
+    <script>
+        // st_all.jsが読み込まれた後、Mediapipeの読み込み開始
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('DOMContentLoaded: Starting waitForMediapipe');
+            const ready = await waitForMediapipe();
+            if (!ready) {
+                console.error('Failed to load Mediapipe after timeout');
+            }
+        });
+    </script>
 </body>
 </html>

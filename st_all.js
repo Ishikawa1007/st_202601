@@ -1,15 +1,26 @@
 // ...existing code...
 
 // Mediapipeの準備完了を待つ関数
-async function waitForMediapipe(maxRetries = 50) {
+async function waitForMediapipe(maxRetries = 100) {
+  console.log('waitForMediapipe: Starting to check for Mediapipe libraries');
   for (let i = 0; i < maxRetries; i++) {
-    if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined' && typeof drawConnectors !== 'undefined') {
-      console.log('Mediapipe libraries loaded successfully');
+    const handsReady = typeof Hands !== 'undefined';
+    const cameraReady = typeof Camera !== 'undefined';
+    const drawersReady = typeof drawConnectors !== 'undefined' && typeof drawLandmarks !== 'undefined';
+    
+    console.log(`waitForMediapipe attempt ${i+1}: Hands=${handsReady}, Camera=${cameraReady}, Drawers=${drawersReady}`);
+    
+    if (handsReady && cameraReady && drawersReady) {
+      console.log('✓ Mediapipe libraries loaded successfully');
+      window._mediapipeReady = true;
       return true;
     }
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
   }
-  console.error('Mediapipe libraries failed to load after ' + maxRetries * 100 + 'ms');
+  console.error('✗ Mediapipe libraries failed to load after ' + (maxRetries * 200) + 'ms');
+  console.error('Hands:', typeof Hands);
+  console.error('Camera:', typeof Camera);
+  console.error('drawConnectors:', typeof drawConnectors);
   return false;
 }
 
@@ -664,12 +675,13 @@ function startMediapipeHands(){
   if (mpCamera) return; // 既に開始済み
   
   // Mediapipeが利用可能か確認
-  if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
-    console.error('startMediapipeHands: Mediapipe libraries not loaded yet');
+  if (typeof Hands === 'undefined' || typeof Camera === 'undefined' || typeof drawConnectors === 'undefined') {
+    console.warn('startMediapipeHands: Mediapipe libraries not loaded yet. Retrying...');
+    console.warn('  Hands:', typeof Hands, 'Camera:', typeof Camera, 'drawConnectors:', typeof drawConnectors);
     const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
-    if (status) status.textContent = 'Mediapipeライブラリの読み込み中...';
-    // 100ms後に再試行
-    setTimeout(() => startMediapipeHands(), 100);
+    if (status) status.textContent = 'ライブラリ読み込み中...';
+    // 200ms後に再試行
+    setTimeout(() => startMediapipeHands(), 200);
     return;
   }
   
