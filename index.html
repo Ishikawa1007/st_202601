@@ -48,24 +48,23 @@
         <!--確認画面-->
         <header>
             <h2 class="title">カメラをかくにんしよう</h2>
-        <div class="buttonRow2">
+        </header>
+        <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+        <script>eruda.init();</script>
+        <!--指が反応しているか、キーが対応して動くか確認(MPにて)**-->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; margin-top:0.5rem;">
+            <!-- デバッグ用: video を表示 -->
+            <video id="mp_input_video_p3" class="mp_input_video_active" style="width:200px;height:150px;background:#000;border:1px solid #aaa;" autoplay muted playsinline></video>
+            <canvas id="mp_output_canvas_p3" class="mp_output_canvas_active" width="720" height="270" style="max-width:90%; border:1px solid #ccc; background:#000;"></canvas>
+            <div id="mp_status" style="font-size:0.9rem; color:#333;">カメラ未接続</div>
+        </div>
+        <div class="buttonRow">
             <button type="button" class="backbutton_b">
                 もどる
             </button>
             <button type="button" class="pracbutton">
                 OK!
             </button>
-            <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-            <script>eruda.init();</script>
-        </header>
-        <!--指が反応しているか、キーが対応して動くか確認(MPにて)**-->
-        <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; margin-top:0.5rem;">
-            <!-- デバッグ用: video を表示 -->
-            <video id="mp_input_video_p3" class="mp_input_video_active" style="width:200px;height:150px;background:#000;border:1px solid #aaa;" autoplay muted playsinline></video>
-            <canvas id="mp_output_canvas_p3" class="mp_output_canvas_active" width="720" height="270" style="max-width:90%; border:1px solid #ccc; background:#000;"></canvas>
-
-            
-            <div id="mp_status" style="font-size:0.9rem; color:#333;">カメラ未接続</div>
         </div>
     </div>
     <div id="page4" class="page" style="display:none;">
