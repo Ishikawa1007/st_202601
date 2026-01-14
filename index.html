@@ -7,9 +7,20 @@
     <!-- wanakana -->
     <script src="https://unpkg.com/wanakana@4.0.2/wanakana.min.js"></script>
     <!-- Mediapipe (Hands, Camera Utils, Drawing Utils) -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.164/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.164/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.4.164/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.164/hands.js" onerror="console.error('hands.js failed to load')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.164/camera_utils.js" onerror="console.error('camera_utils.js failed to load')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.4.164/drawing_utils.js" onerror="console.error('drawing_utils.js failed to load')"></script>
+    <script>
+        // Mediapipeスクリプト読み込みの確認
+        window.addEventListener('load', () => {
+            console.log('Checking Mediapipe libraries:');
+            console.log('Hands:', typeof Hands);
+            console.log('Camera:', typeof Camera);
+            console.log('drawConnectors:', typeof drawConnectors);
+            console.log('drawLandmarks:', typeof drawLandmarks);
+            console.log('HAND_CONNECTIONS:', typeof HAND_CONNECTIONS);
+        });
+    </script>
 </head>
 <body>
     <div id="page1" class="page" style="display:flex;">
