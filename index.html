@@ -6,71 +6,10 @@
     <link rel="stylesheet" href="st_main.css">
     <!-- wanakana -->
     <script src="https://unpkg.com/wanakana@4.0.2/wanakana.min.js"></script>
-    <!-- Mediapipe (Hands, Camera Utils, Drawing Utils) - Try multiple CDNs -->
-    <script>
-        // CDN読み込み失敗時のフォールバック機能付き
-        function loadScript(src, onSuccess, onError) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = onSuccess;
-            script.onerror = onError;
-            document.head.appendChild(script);
-        }
-        
-        console.log('Attempting to load Mediapipe libraries...');
-        
-        // Hands.js
-        loadScript(
-            'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.164/hands.js',
-            () => console.log('✓ hands.js loaded from jsDelivr'),
-            () => {
-                console.warn('✗ hands.js failed from jsDelivr, trying unpkg...');
-                loadScript(
-                    'https://unpkg.com/@mediapipe/hands@0.4.164/hands.js',
-                    () => console.log('✓ hands.js loaded from unpkg'),
-                    () => console.error('✗ hands.js failed from all CDNs')
-                );
-            }
-        );
-        
-        // Camera Utils
-        loadScript(
-            'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.164/camera_utils.js',
-            () => console.log('✓ camera_utils.js loaded from jsDelivr'),
-            () => {
-                console.warn('✗ camera_utils.js failed from jsDelivr, trying unpkg...');
-                loadScript(
-                    'https://unpkg.com/@mediapipe/camera_utils@0.4.164/camera_utils.js',
-                    () => console.log('✓ camera_utils.js loaded from unpkg'),
-                    () => console.error('✗ camera_utils.js failed from all CDNs')
-                );
-            }
-        );
-        
-        // Drawing Utils
-        loadScript(
-            'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.4.164/drawing_utils.js',
-            () => console.log('✓ drawing_utils.js loaded from jsDelivr'),
-            () => {
-                console.warn('✗ drawing_utils.js failed from jsDelivr, trying unpkg...');
-                loadScript(
-                    'https://unpkg.com/@mediapipe/drawing_utils@0.4.164/drawing_utils.js',
-                    () => console.log('✓ drawing_utils.js loaded from unpkg'),
-                    () => console.error('✗ drawing_utils.js failed from all CDNs')
-                );
-            }
-        );
-    </script>
-    <script>
-        // Mediapipeスクリプト読み込みの確認（headで即座にチェック）
-        setTimeout(() => {
-            console.log('Final Mediapipe check:');
-            console.log('Hands:', typeof Hands);
-            console.log('Camera:', typeof Camera);
-            console.log('drawConnectors:', typeof drawConnectors);
-            window._mediapipeReady = (typeof Hands !== 'undefined' && typeof Camera !== 'undefined');
-        }, 1000);
-    </script>
+    <!-- Mediapipe (Hands, Camera Utils, Drawing Utils) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.164/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.164/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.4.164/drawing_utils.js"></script>
 </head>
 <body>
     <div id="page1" class="page" style="display:flex;">

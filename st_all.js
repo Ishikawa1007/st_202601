@@ -1,26 +1,16 @@
 // ...existing code...
 
 // Mediapipeの準備完了を待つ関数
-async function waitForMediapipe(maxRetries = 100) {
-  console.log('waitForMediapipe: Starting to check for Mediapipe libraries');
+async function waitForMediapipe(maxRetries = 50) {
+  console.log('waitForMediapipe: Checking for Mediapipe libraries');
   for (let i = 0; i < maxRetries; i++) {
-    const handsReady = typeof Hands !== 'undefined';
-    const cameraReady = typeof Camera !== 'undefined';
-    const drawersReady = typeof drawConnectors !== 'undefined' && typeof drawLandmarks !== 'undefined';
-    
-    console.log(`waitForMediapipe attempt ${i+1}: Hands=${handsReady}, Camera=${cameraReady}, Drawers=${drawersReady}`);
-    
-    if (handsReady && cameraReady && drawersReady) {
-      console.log('✓ Mediapipe libraries loaded successfully');
-      window._mediapipeReady = true;
+    if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined' && typeof drawConnectors !== 'undefined') {
+      console.log('✓ Mediapipe libraries ready');
       return true;
     }
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
-  console.error('✗ Mediapipe libraries failed to load after ' + (maxRetries * 200) + 'ms');
-  console.error('Hands:', typeof Hands);
-  console.error('Camera:', typeof Camera);
-  console.error('drawConnectors:', typeof drawConnectors);
+  console.error('✗ Mediapipe libraries not loaded after timeout');
   return false;
 }
 
