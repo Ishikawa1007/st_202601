@@ -1,7 +1,7 @@
 // ...existing code...
 
 // Mediapipeの準備完了を待つ関数
-async function waitForMediapipe(maxRetries = 150) {
+async function waitForMediapipe(maxRetries = 1000) {
   console.log('waitForMediapipe: Checking for Mediapipe libraries (max wait: ' + (maxRetries * 100) + 'ms)');
   for (let i = 0; i < maxRetries; i++) {
     const handsReady = typeof Hands !== 'undefined';
