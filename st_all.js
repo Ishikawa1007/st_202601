@@ -711,7 +711,7 @@ function startMediapipeHands(){
 
   mpHands = new Hands({
   locateFile: (file) =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/hands@${MP_VERSION}/${file}`
+    `./pacage/${file}`
 });
 
 
