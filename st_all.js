@@ -1,4 +1,9 @@
-// ...existing code...
+// Hand connection definitions for drawConnectors
+const HAND_CONNECTIONS = [
+  [0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7],
+  [7, 8], [5, 9], [9, 10], [10, 11], [11, 12], [13, 14], [14, 15],
+  [15, 16], [0, 17], [17, 18], [18, 19], [19, 20]
+];
 
 // Mediapipeの準備完了を待つ関数
 async function waitForMediapipe(maxRetries = 1000) {
@@ -632,7 +637,9 @@ function onHandsResults(results){
     const fingertipIndices = [4,8,12,16,20];
     const detected = {};
     for (const landmarks of results.multiHandLandmarks){
-      if (typeof drawConnectors === 'function') drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color:'#00FF00', lineWidth:2});
+      if (typeof drawConnectors === 'function' && typeof HAND_CONNECTIONS !== 'undefined') {
+        drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color:'#00FF00', lineWidth:2});
+      }
       if (typeof drawLandmarks === 'function') drawLandmarks(ctx, landmarks, {color:'#FF0000', lineWidth:1});
       // 指先ランドマークを強調: 4,8,12,16,20
       fingertipIndices.forEach(i=>{
@@ -716,7 +723,15 @@ function startMediapipeHands(){
   mpHands.onResults(onHandsResults);
   console.log('creating Camera with canvas size', canvas.width, canvas.height);
   mpCamera = new Camera(video, {
-    onFrame: async () => { await mpHands.send({image: video}); },
+    onFrame: async () => {
+      try {
+        if (video.readyState >= 2) {
+          await mpHands.send({image: video});
+        }
+      } catch (err) {
+        console.error('mpHands.send() error:', err);
+      }
+    },
     width: canvas.width || 640,
     height: canvas.height || 480
   });
