@@ -714,8 +714,16 @@ function startMediapipeHands(){
   }
   if (video.readyState >= 2) { console.log('video ready immediately'); setCanvasSizeToVideo(); }
   else { console.log('video not ready, waiting for loadedmetadata'); video.addEventListener('loadedmetadata', setCanvasSizeToVideo, {once:true}); }
+  
   mpHands = new Hands({
-    locateFile: (file) => `./hands/${file}`
+    locateFile: (file) => {
+      // SIMD 版で問題が出た場合は非 SIMD 版を使う
+      if (file.includes('simd_wasm')) {
+        console.log('Switching from SIMD to non-SIMD WASM');
+        return `./hands/${file.replace('simd_wasm_bin', 'wasm_bin')}`;
+      }
+      return `./hands/${file}`;
+    }
   });
 
 
@@ -725,11 +733,18 @@ function startMediapipeHands(){
   mpCamera = new Camera(video, {
     onFrame: async () => {
       try {
-        if (video.readyState >= 2) {
+        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+          // send を呼び出す前に video の状態を確認
           await mpHands.send({image: video});
+        } else {
+          if (video.readyState < 2) {
+            console.warn('video not ready:', video.readyState);
+          } else if (video.videoWidth === 0 || video.videoHeight === 0) {
+            console.warn('video size invalid:', video.videoWidth, 'x', video.videoHeight);
+          }
         }
       } catch (err) {
-        console.error('mpHands.send() error:', err);
+        console.error('mpHands.send() error:', err, 'video state:', video.readyState, video.videoWidth, 'x', video.videoHeight);
       }
     },
     width: canvas.width || 640,
@@ -738,6 +753,14 @@ function startMediapipeHands(){
   mpCamera.start().then(()=>{
     if (status) status.textContent = 'カメラ接続中';
     console.log('mpCamera.start() succeeded');
+    // video サイズが確定したら canvas を再度同期
+    setTimeout(() => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        console.log('Canvas resized to video size:', canvas.width, 'x', canvas.height);
+      }
+    }, 500);
     // フォールバック: onHandsResults が呼ばれない場合でも video を canvas に描画する
     if (!window._mpHandsRendered && !mpCanvasFallbackTimer){
       mpCanvasFallbackTimer = setInterval(()=>{
