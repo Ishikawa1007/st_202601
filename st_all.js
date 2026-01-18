@@ -707,13 +707,9 @@ function startMediapipeHands(){
   }
   if (video.readyState >= 2) { console.log('video ready immediately'); setCanvasSizeToVideo(); }
   else { console.log('video not ready, waiting for loadedmetadata'); video.addEventListener('loadedmetadata', setCanvasSizeToVideo, {once:true}); }
-  const MP_VERSION = "0.4.1675469240";
-
   mpHands = new Hands({
-  locateFile: (file) =>
-    `./pacage/${file}`
-    `./camera/${file}`
-    `./hands/${file}`});
+    locateFile: (file) => `./hands/${file}`
+  });
 
 
   mpHands.setOptions({maxNumHands:2, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
