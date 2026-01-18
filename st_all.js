@@ -712,7 +712,8 @@ function startMediapipeHands(){
   mpHands = new Hands({
   locateFile: (file) =>
     `./pacage/${file}`
-});
+    `./camera/${file}`
+    `./hands/${file}`});
 
 
   mpHands.setOptions({maxNumHands:2, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
