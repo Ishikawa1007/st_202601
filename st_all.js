@@ -714,6 +714,21 @@ function startMediapipeHands(){
   canvas.width = VIDEO_SIZE.width;
   canvas.height = VIDEO_SIZE.height;
   
+  // video の実際のサイズを待つ（loadedmetadata）
+  const setCanvasToVideoSize = () => {
+    if (video.videoWidth > 0 && video.videoHeight > 0) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      console.log('Canvas resized to video size:', canvas.width, 'x', canvas.height);
+    }
+  };
+  
+  if (video.readyState >= 1) {
+    setCanvasToVideoSize();
+  } else {
+    video.addEventListener('loadedmetadata', setCanvasToVideoSize, {once: true});
+  }
+  
   // Step 1: Camera を先に起動
   mpCamera = new Camera(video, {
     onFrame: async () => {
@@ -723,7 +738,12 @@ function startMediapipeHands(){
       }
       try {
         if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-          await mpHands.send({image: video});
+          // Canvas に video を描画してから send() に渡す
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          // Canvas 画像を send() に渡す
+          await mpHands.send({image: canvas});
         } else {
           console.warn('[onFrame] video not ready: readyState=' + video.readyState + ', size=' + video.videoWidth + 'x' + video.videoHeight);
         }
