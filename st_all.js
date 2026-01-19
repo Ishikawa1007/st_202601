@@ -613,6 +613,14 @@ function onHandsResults(results){
   // mark that hands results arrived and stop fallback drawing if any
   try{ window._mpHandsRendered = true; }catch(e){}
   if (mpCanvasFallbackTimer){ clearInterval(mpCanvasFallbackTimer); mpCanvasFallbackTimer = null; }
+  
+  // 呼び出し回数をカウント（コンソール出力を減らすため 30 回に 1 回だけ出力）
+  if (!window._handsResultsCount) window._handsResultsCount = 0;
+  window._handsResultsCount++;
+  if (window._handsResultsCount % 30 === 0) {
+    console.log(`[onHandsResults] called ${window._handsResultsCount} times`);
+  }
+  
   const canvas = document.getElementById('mp_output_canvas');
   const status = document.getElementById('mp_status');
   if (!canvas) return;
@@ -710,15 +718,17 @@ function startMediapipeHands(){
   mpCamera = new Camera(video, {
     onFrame: async () => {
       if (!mpHands) {
-        console.warn('mpHands not initialized yet');
+        console.warn('[onFrame] mpHands not initialized yet');
         return;
       }
       try {
         if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
           await mpHands.send({image: video});
+        } else {
+          console.warn('[onFrame] video not ready: readyState=' + video.readyState + ', size=' + video.videoWidth + 'x' + video.videoHeight);
         }
       } catch (err) {
-        console.error('mpHands.send() error:', err);
+        console.error('[onFrame] mpHands.send() error:', err.message || err);
       }
     },
     width: VIDEO_SIZE.width,
@@ -730,13 +740,17 @@ function startMediapipeHands(){
     console.log('mpCamera.start() succeeded');
     
     // Step 2: Camera 起動後に Hands を初期化
-    setTimeout(() => {
+    let handsInitTimeout = setTimeout(() => {
       try {
+        console.log('Initializing Hands...');
         mpHands = new Hands({
           locateFile: (file) => {
+            console.log('Hands locateFile requested:', file);
             if (file.includes('simd_wasm')) {
               console.log('Switching from SIMD to non-SIMD WASM');
-              return `./hands/${file.replace('simd_wasm_bin', 'wasm_bin')}`;
+              const replacement = `./hands/${file.replace('simd_wasm_bin', 'wasm_bin')}`;
+              console.log('  SIMD file:', file, '-> non-SIMD:', replacement);
+              return replacement;
             }
             return `./hands/${file}`;
           }
@@ -745,12 +759,12 @@ function startMediapipeHands(){
         mpHands.setOptions({maxNumHands: 2, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5});
         mpHands.onResults(onHandsResults);
         
-        console.log('mpHands initialized successfully');
+        console.log('✓ mpHands initialized successfully');
         if (status) status.textContent = 'カメラ接続中';
         
       } catch (err) {
-        console.error('Failed to initialize Hands:', err);
-        if (status) status.textContent = 'Hands 初期化失敗';
+        console.error('✗ Failed to initialize Hands:', err, err.stack);
+        if (status) status.textContent = 'Hands 初期化失敗: ' + err.message;
       }
     }, 500);
     
@@ -763,7 +777,14 @@ function startMediapipeHands(){
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const st = document.getElementById('mp_status');
-            if (st) st.textContent = 'video再生中（hands検出待機中）';
+            if (st) {
+              // mpHands の状態によってメッセージを変更
+              if (mpHands) {
+                st.textContent = 'video再生中（手検出待機中...）';
+              } else {
+                st.textContent = 'Hands 初期化中...';
+              }
+            }
           }
         } catch(e) {
           console.error('fallback draw error', e);
@@ -773,7 +794,7 @@ function startMediapipeHands(){
     
   }).catch(err=>{
     if (status) status.textContent = 'カメラ開始失敗';
-    console.error('mpCamera.start() failed:', err);
+    console.error('mpCamera.start() failed:', err, err.stack);
   });
 }
 
