@@ -685,96 +685,96 @@ function startMediapipeHands(){
     console.warn('  Hands:', typeof Hands, 'Camera:', typeof Camera, 'drawConnectors:', typeof drawConnectors);
     const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
     if (status) status.textContent = 'ライブラリ読み込み中...';
-    // 200ms後に再試行
     setTimeout(() => startMediapipeHands(), 200);
     return;
   }
   
   const video = document.querySelector('.mp_input_video_active');  
   const canvas = document.querySelector('.mp_output_canvas_active');
-
-  const status =
-    document.getElementById('mp_status_p4') ||
-    document.getElementById('mp_status_p3');
+  const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
+  
   if (!video || !canvas) {
     if (status) status.textContent = 'カメラ要素が見つかりません';
     console.error('startMediapipeHands: video or canvas not found');
     return;
   }
-  console.log('startMediapipeHands: video/canvas found. video.readyState=', video.readyState, 'videoWidth=', video.videoWidth);
-  // キャンバスをビデオの実解像度に合わせる (ピクセル座標を正確に扱うため)
-  function setCanvasSizeToVideo(){
-    const vw = video.videoWidth || 640;
-    const vh = video.videoHeight || 480;
-    console.log('setCanvasSizeToVideo: vw='+vw+', vh='+vh+', current canvas:', canvas.width, canvas.height);
-    if (canvas.width !== vw || canvas.height !== vh){
-      canvas.width = vw;
-      canvas.height = vh;
-    }
-  }
-  if (video.readyState >= 2) { console.log('video ready immediately'); setCanvasSizeToVideo(); }
-  else { console.log('video not ready, waiting for loadedmetadata'); video.addEventListener('loadedmetadata', setCanvasSizeToVideo, {once:true}); }
   
-  mpHands = new Hands({
-    locateFile: (file) => {
-      // SIMD 版で問題が出た場合は非 SIMD 版を使う
-      if (file.includes('simd_wasm')) {
-        console.log('Switching from SIMD to non-SIMD WASM');
-        return `./hands/${file.replace('simd_wasm_bin', 'wasm_bin')}`;
-      }
-      return `./hands/${file}`;
-    }
-  });
-
-
-  mpHands.setOptions({maxNumHands:2, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
-  mpHands.onResults(onHandsResults);
-  console.log('creating Camera with canvas size', canvas.width, canvas.height);
+  console.log('startMediapipeHands: initializing Camera first');
+  
+  // Canvas サイズを初期化（VIDEO_SIZE に合わせる）
+  const VIDEO_SIZE = { width: 640, height: 480 };
+  canvas.width = VIDEO_SIZE.width;
+  canvas.height = VIDEO_SIZE.height;
+  
+  // Step 1: Camera を先に起動
   mpCamera = new Camera(video, {
     onFrame: async () => {
+      if (!mpHands) {
+        console.warn('mpHands not initialized yet');
+        return;
+      }
       try {
         if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-          // send を呼び出す前に video の状態を確認
           await mpHands.send({image: video});
-        } else {
-          if (video.readyState < 2) {
-            console.warn('video not ready:', video.readyState);
-          } else if (video.videoWidth === 0 || video.videoHeight === 0) {
-            console.warn('video size invalid:', video.videoWidth, 'x', video.videoHeight);
-          }
         }
       } catch (err) {
-        console.error('mpHands.send() error:', err, 'video state:', video.readyState, video.videoWidth, 'x', video.videoHeight);
+        console.error('mpHands.send() error:', err);
       }
     },
-    width: canvas.width || 640,
-    height: canvas.height || 480
+    width: VIDEO_SIZE.width,
+    height: VIDEO_SIZE.height
   });
+  
   mpCamera.start().then(()=>{
-    if (status) status.textContent = 'カメラ接続中';
+    if (status) status.textContent = 'カメラ起動成功';
     console.log('mpCamera.start() succeeded');
-    // video サイズが確定したら canvas を再度同期
+    
+    // Step 2: Camera 起動後に Hands を初期化
     setTimeout(() => {
-      if (video.videoWidth > 0 && video.videoHeight > 0) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        console.log('Canvas resized to video size:', canvas.width, 'x', canvas.height);
+      try {
+        mpHands = new Hands({
+          locateFile: (file) => {
+            if (file.includes('simd_wasm')) {
+              console.log('Switching from SIMD to non-SIMD WASM');
+              return `./hands/${file.replace('simd_wasm_bin', 'wasm_bin')}`;
+            }
+            return `./hands/${file}`;
+          }
+        });
+        
+        mpHands.setOptions({maxNumHands: 2, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5});
+        mpHands.onResults(onHandsResults);
+        
+        console.log('mpHands initialized successfully');
+        if (status) status.textContent = 'カメラ接続中';
+        
+      } catch (err) {
+        console.error('Failed to initialize Hands:', err);
+        if (status) status.textContent = 'Hands 初期化失敗';
       }
     }, 500);
-    // フォールバック: onHandsResults が呼ばれない場合でも video を canvas に描画する
+    
+    // フォールバック描画
     if (!window._mpHandsRendered && !mpCanvasFallbackTimer){
       mpCanvasFallbackTimer = setInterval(()=>{
         try{
-          if (video && canvas && video.videoWidth>0 && video.videoHeight>0){
+          if (video && canvas && video.videoWidth > 0 && video.videoHeight > 0){
             const ctx = canvas.getContext('2d');
-            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const st = document.getElementById('mp_status'); if (st) st.textContent = 'video再生中（hands未検出）';
+            const st = document.getElementById('mp_status');
+            if (st) st.textContent = 'video再生中（hands検出待機中）';
           }
-        }catch(e){ console.error('fallback draw error', e); }
+        } catch(e) {
+          console.error('fallback draw error', e);
+        }
       }, 150);
     }
-  }).catch(err=>{ if (status) status.textContent = 'カメラ開始失敗'; console.error('mpCamera.start() failed:', err); });
+    
+  }).catch(err=>{
+    if (status) status.textContent = 'カメラ開始失敗';
+    console.error('mpCamera.start() failed:', err);
+  });
 }
 
 function stopMediapipeHands(){
