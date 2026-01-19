@@ -78,55 +78,55 @@ if (lslider) { updateLevelLabel(lslider.value); lslider.addEventListener('input'
 
 // --- キーボード座標定義 ---
 const keyboardLayout = {
-  '1': {x: 518, y: 1702},
-  '2': {x: 715, y: 1705},
-  '3': {x: 907, y: 1706},
-  '4': {x: 1102, y: 1709},
-  '5': {x: 1292, y: 1712},
-  '6': {x: 1485, y: 1714},
-  '7': {x: 1674, y: 1721},
-  '8': {x: 1860, y: 1722},
-  '9': {x: 2060, y: 1727},
-  '0': {x: 2254, y: 1732},
-  '-': {x: 2457, y: 1739},
-  '^': {x: 2653, y: 1742},
-  '\\': {x: 2854, y: 1747},
-  'bs': {x: 3050, y: 1748},
-  'q': {x: 696, y: 1682},
-  'w': {x: 865, y: 1684},
-  'e': {x: 1050, y: 1685},
-  'r': {x: 1226, y: 1688},
-  't': {x: 1406, y: 1691},
-  'y': {x: 1586, y: 1695},
-  'u': {x: 1761, y: 1698},
-  'i': {x: 1952, y: 1701},
-  'o': {x: 2127, y: 1703},
-  'p': {x: 2309, y: 1709},
-  '@': {x: 2493, y: 1714},
-  '[': {x: 2671, y: 1718},
-  'ent': {x: 2874, y: 1733},
-  'a': {x: 791, y: 1658},
-  's': {x: 969, y: 1665},
-  'd': {x: 1138, y: 1666},
-  'f': {x: 1300, y: 1667},
-  'g': {x: 1470, y: 1671},
-  'h': {x: 1639, y: 1674},
-  'j': {x: 1808, y: 1677},
-  'k': {x: 1963, y: 1679},
-  'l': {x: 2135, y: 1683},
-  ';': {x: 2302, y: 1687},
-  ':': {x: 2489, y: 1692},
-  ']': {x: 2659, y: 1697},
-  'z': {x: 931, y: 1648},
-  'x': {x: 1089, y: 1649},
-  'c': {x: 1243, y: 1650},
-  'v': {x: 1415, y: 1653},
-  'b': {x: 1560, y: 1656},
-  'n': {x: 1695, y: 1658},
-  'm': {x: 1881, y: 1661},
-  ',': {x: 2034, y: 1664},
-  '.': {x: 2191, y: 1668},
-  '/': {x: 2352, y: 1672}
+  '1': {x: 101, y: 333},
+  '2': {x: 140, y: 334},
+  '3': {x: 177, y: 334},
+  '4': {x: 216, y: 335},
+  '5': {x: 253, y: 335},
+  '6': {x: 291, y: 336},
+  '7': {x: 328, y: 337},
+  '8': {x: 364, y: 337},
+  '9': {x: 403, y: 338},
+  '0': {x: 441, y: 339},
+  '-': {x: 481, y: 340},
+  '^': {x: 520, y: 341},
+  '\\': {x: 559, y: 342},
+  'bs': {x: 598, y: 342},
+  'q': {x: 136, y: 329},
+  'w': {x: 169, y: 330},
+  'e': {x: 205, y: 330},
+  'r': {x: 240, y: 330},
+  't': {x: 275, y: 331},
+  'y': {x: 310, y: 332},
+  'u': {x: 345, y: 332},
+  'i': {x: 382, y: 333},
+  'o': {x: 417, y: 333},
+  'p': {x: 452, y: 335},
+  '@': {x: 488, y: 336},
+  '[': {x: 523, y: 336},
+  'ent': {x: 563, y: 339},
+  'a': {x: 155, y: 325},
+  's': {x: 190, y: 326},
+  'd': {x: 223, y: 326},
+  'f': {x: 254, y: 326},
+  'g': {x: 288, y: 327},
+  'h': {x: 321, y: 328},
+  'j': {x: 354, y: 328},
+  'k': {x: 384, y: 329},
+  'l': {x: 418, y: 330},
+  ';': {x: 451, y: 330},
+  ':': {x: 488, y: 331},
+  ']': {x: 521, y: 332},
+  'z': {x: 182, y: 323},
+  'x': {x: 213, y: 323},
+  'c': {x: 243, y: 323},
+  'v': {x: 277, y: 324},
+  'b': {x: 305, y: 324},
+  'n': {x: 332, y: 325},
+  'm': {x: 368, y: 325},
+  ',': {x: 398, y: 326},
+  '.': {x: 429, y: 327},
+  '/': {x: 461, y: 327}
 };
 
 const KEYBOARD_DETECTION_DISTANCE = 80; // ピクセル単位での検出距離
@@ -167,9 +167,8 @@ function checkKeyInput() {
   if (!fingertip) return;
   
   for (const [key, pos] of Object.entries(keyboardLayout)) {
-    const fx = (fingertip.xDiv !== undefined) ? fingertip.xDiv : fingertip.xPx;
-    const fy = (fingertip.yDiv !== undefined) ? fingertip.yDiv : fingertip.yPx;
-    const dist = Math.hypot(fx - pos.x, fy - pos.y);
+    // xDiv, yDiv で直接比較（ウィンドウサイズに合わせた座標）
+    const dist = Math.hypot(fingertip.xDiv - pos.x, fingertip.yDiv - pos.y);
     if (dist <= KEYBOARD_DETECTION_DISTANCE) {
       inputBuffer += key;
       lastInputTime = now;
@@ -652,19 +651,17 @@ function onHandsResults(results){
       // 指先ランドマークを強調: 4,8,12,16,20
       fingertipIndices.forEach(i=>{
         const lm = landmarks[i]; if (!lm) return;
-        // フロントカメラの場合は X を反転して扱う（x' = 1 - x）
-        const rawX = lm.x;
-        const xNorm = (window.mpUseMirror) ? (1 - rawX) : rawX;
-        const yNorm = lm.y;
-        const xPx = xNorm * canvas.width; const yPx = yNorm * canvas.height;
-        // Mediapipe座標を5.1で割って四捨五入した整数座標を追加
-        const xDiv = Math.round(xPx / 5.1);
-        const yDiv = Math.round(yPx / 5.1);
+        // 正規化座標 (0..1) をウィンドウサイズに基づいたピクセル座標に変換
+        const xPx = lm.x * canvas.width; 
+        const yPx = lm.y * canvas.height;
+        
+        // キーボード座標と直接比較できる座標
+        const xDiv = Math.round(xPx);
+        const yDiv = Math.round(yPx);
+        
         ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(xPx, yPx, 6, 0, 2*Math.PI); ctx.fill();
         ctx.fillStyle = 'black'; ctx.font='12px sans-serif'; ctx.fillText(String(i), xPx+6, yPx-6);
-        // 正規化座標 (0..1) とピクセル座標、Z (奥行き, Mediapipe の規約で負はカメラ側に近い)
-        // 保存: 正規化座標 (0..1) は反転済み x を採用、rawX を rawX として保持
-        detected[i] = { x: xNorm, y: yNorm, z: lm.z, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv, rawX: rawX };
+        detected[i] = { x: lm.x, y: lm.y, z: lm.z, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv };
       });
       // 1手のみ取得する場合は break してもよい
     }
@@ -709,25 +706,15 @@ function startMediapipeHands(){
   
   console.log('startMediapipeHands: initializing Camera first');
   
-  // Canvas サイズを初期化（VIDEO_SIZE に合わせる）
-  const VIDEO_SIZE = { width: 640, height: 480 };
-  canvas.width = VIDEO_SIZE.width;
-  canvas.height = VIDEO_SIZE.height;
+  // ビデオは 640x480 で取得、キャンバスは 640x240 で表示（上半分のみ）
+  const VIDEO_WIDTH = 640;
+  const VIDEO_HEIGHT = 480;
+  const CANVAS_HEIGHT = 240; // 表示領域は上半分
   
-  // video の実際のサイズを待つ（loadedmetadata）
-  const setCanvasToVideoSize = () => {
-    if (video.videoWidth > 0 && video.videoHeight > 0) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      console.log('Canvas resized to video size:', canvas.width, 'x', canvas.height);
-    }
-  };
+  canvas.width = VIDEO_WIDTH;
+  canvas.height = CANVAS_HEIGHT;
   
-  if (video.readyState >= 1) {
-    setCanvasToVideoSize();
-  } else {
-    video.addEventListener('loadedmetadata', setCanvasToVideoSize, {once: true});
-  }
+  console.log('Canvas initialized: ' + canvas.width + ' x ' + canvas.height);
   
   // Step 1: Camera を先に起動
   mpCamera = new Camera(video, {
@@ -738,9 +725,11 @@ function startMediapipeHands(){
       }
       try {
         if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-          // Canvas に video を描画してから send() に渡す
+          // video から 640x480 の画像を canvas に描画（上半分 640x240 のみ）
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          // video の上半分（0, 0, 640, 240）を canvas に描画
+          ctx.drawImage(video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT, 0, 0, canvas.width, canvas.height);
           
           // Canvas 画像を send() に渡す
           await mpHands.send({image: canvas});
@@ -751,8 +740,8 @@ function startMediapipeHands(){
         console.error('[onFrame] mpHands.send() error:', err.message || err);
       }
     },
-    width: VIDEO_SIZE.width,
-    height: VIDEO_SIZE.height
+    width: VIDEO_WIDTH,
+    height: VIDEO_HEIGHT
   });
   
   mpCamera.start().then(()=>{
