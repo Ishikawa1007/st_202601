@@ -729,8 +729,8 @@ function startMediapipeHands(){
           const ctx = canvas.getContext('2d');
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           
-          // video の上半分（0, 0, actualW, actualH/2）を canvas に描画
-          ctx.drawImage(video, 0, 0, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
+          // video の下半分（0, actualH/2, actualW, actualH/2）を canvas に描画
+          ctx.drawImage(video, 0, actualH / 2, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
           
           // Canvas 画像を send() に渡す
           if (mpHands) await mpHands.send({image: canvas});
