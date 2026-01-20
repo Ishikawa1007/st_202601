@@ -626,8 +626,9 @@ function onHandsResults(results){
   const ctx = canvas.getContext('2d');
   ctx.save();
   
-  // onFrame で既に canvas に video が描画されているので、
-  // ここでは手のランドマークのみを描画（ビデオの再描画は不要＝ちかちか対策）
+  // onFrame で既に canvas に video（下半分のみ）が描画されているので、
+  // ここでは手のランドマークのみを描画
+  // results.image は Mediapipe の出力で、canvas サイズで既に正規化されている
   if (results.image) ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
   if (results.multiHandLandmarks && results.multiHandLandmarks.length>0){
     // 今回は最大1手想定だが、複数手にも対応
@@ -793,8 +794,11 @@ function startMediapipeHands(){
           if (video && canvas && video.videoWidth > 0 && video.videoHeight > 0){
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const st = document.getElementById('mp_status');
+            // video の下半分のみを canvas に描画
+            const actualW = video.videoWidth;
+            const actualH = video.videoHeight;
+            ctx.drawImage(video, 0, actualH / 2, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
+            const st = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
             if (st) {
               // mpHands の状態によってメッセージを変更
               if (mpHands) {
