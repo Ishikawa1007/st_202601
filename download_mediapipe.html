@@ -6,32 +6,53 @@
 <body>
     <h1>Mediapipeファイルをダウンロード中...</h1>
     <div id="log"></div>
+    
     <script>
         const files = [
             { url: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.164/hands.js', name: 'hands.js' },
             { url: 'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.164/camera_utils.js', name: 'camera_utils.js' },
             { url: 'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.4.164/drawing_utils.js', name: 'drawing_utils.js' }
         ];
-        
-        async function download() {
-            for (const file of files) {
-                try {
-                    const response = await fetch(file.url);
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = file.name;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    document.getElementById('log').innerHTML += `<div>✓ ${file.name} をダウンロードしました</div>`;
-                } catch(e) {
-                    document.getElementById('log').innerHTML += `<div>✗ ${file.name} のダウンロード失敗: ${e}</div>`;
-                }
-            }
+
+        const log = (msg, success = true) => { 
+            const div = document.createElement('div'); 
+            div.textContent = `${success ? "✓" : "✗"} ${msg}`; 
+            div.style.color = success ? "green" : "red"; 
+            document.getElementById('log').appendChild(div); 
+        };
+
+        async function downloadFile({ url, name }) { 
+            try { 
+                const response = await fetch(url); 
+                
+                if (!response.ok) { 
+                    throw new Error(`HTTP ${response.status}`); 
+                } 
+                const blob = await response.blob(); 
+                const blobUrl = URL.createObjectURL(blob); 
+                
+                const a = document.createElement('a'); 
+                a.href = blobUrl; 
+                a.download = name; 
+                document.body.appendChild(a); 
+                a.click(); 
+                a.remove();
+                //URLリーク防止
+                URL.revokeObjectURL(blobUrl); 
+                
+                log(`${name} をダウンロードしました`); 
+            } catch (e) { 
+                log(`${name} のダウンロード失敗: ${e.message}`, false); 
+            } 
         }
-        window.onload = download;
+
+        async function downloadAll() { 
+            // 並列ダウンロード 
+            await Promise.all(files.map(downloadFile)); 
+            log("すべてのダウンロードが完了しました"); 
+        }
+//自動ダウンロード
+        window.onload = downloadAll;
     </script>
 </body>
 </html>
