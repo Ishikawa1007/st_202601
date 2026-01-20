@@ -620,23 +620,14 @@ function onHandsResults(results){
     console.log(`[onHandsResults] called ${window._handsResultsCount} times`);
   }
   
-  const canvas = document.getElementById('mp_output_canvas');
-  const status = document.getElementById('mp_status');
+  const canvas = document.querySelector('.mp_output_canvas_active');
+  const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.save();
-  ctx.clearRect(0,0,canvas.width,canvas.height);
   
-  // 常に video から直接 canvas に描画（Hands 検出の有無に関わらず）
-  const video = document.querySelector('.mp_input_video_active');
-  if (video && video.videoWidth > 0 && video.videoHeight > 0) {
-    try {
-      ctx.drawImage(video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT, 0, 0, canvas.width, canvas.height);
-    } catch (e) {
-      console.error('drawImage from video failed:', e);
-    }
-  }
-  
+  // onFrame で既に canvas に video が描画されているので、
+  // ここでは手のランドマークのみを描画（ビデオの再描画は不要＝ちかちか対策）
   if (results.image) ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
   if (results.multiHandLandmarks && results.multiHandLandmarks.length>0){
     // 今回は最大1手想定だが、複数手にも対応
@@ -705,13 +696,13 @@ function startMediapipeHands(){
   
   console.log('startMediapipeHands: initializing Camera first');
   
-  // ビデオは 640x480 で取得、キャンバスは 640x240 で表示（上半分のみ）
+  // ビデオは 640x480 で取得、キャンバスは 240px 高さ表示（上半分のみ）
   const VIDEO_WIDTH = 640;
   const VIDEO_HEIGHT = 480;
-  const CANVAS_HEIGHT = 240; // 表示領域は上半分
   
+  // Canvas の初期サイズを設定（onFrame で動的に調整される）
   canvas.width = VIDEO_WIDTH;
-  canvas.height = CANVAS_HEIGHT;
+  canvas.height = VIDEO_HEIGHT / 2;
   
   console.log('Canvas initialized: ' + canvas.width + ' x ' + canvas.height);
   
@@ -724,15 +715,25 @@ function startMediapipeHands(){
       }
       try {
         if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-          console.log('video size:', video.videoWidth, 'x', video.videoHeight);
-          // video から 640x480 の画像を canvas に描画（上半分 640x240 のみ）
+          // ビデオの実際のサイズを確認
+          const actualW = video.videoWidth;
+          const actualH = video.videoHeight;
+          
+          // Canvas サイズをビデオに合わせる（上半分の高さに調整）
+          if (canvas.width !== actualW || canvas.height !== Math.round(actualH / 2)) {
+            canvas.width = actualW;
+            canvas.height = Math.round(actualH / 2);
+            console.log('Canvas resized to:', canvas.width, 'x', canvas.height, 'from video:', actualW, 'x', actualH);
+          }
+          
           const ctx = canvas.getContext('2d');
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          // video の上半分（0, 0, 640, 240）を canvas に描画
-          ctx.drawImage(video, 0, VIDEO_HEIGHT/2, VIDEO_WIDTH, VIDEO_HEIGHT/2, 0, 0, canvas.width, canvas.height);
+          
+          // video の上半分（0, 0, actualW, actualH/2）を canvas に描画
+          ctx.drawImage(video, 0, 0, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
           
           // Canvas 画像を send() に渡す
-          await mpHands.send({image: canvas});
+          if (mpHands) await mpHands.send({image: canvas});
         } else {
           console.warn('[onFrame] video not ready: readyState=' + video.readyState + ', size=' + video.videoWidth + 'x' + video.videoHeight);
         }
