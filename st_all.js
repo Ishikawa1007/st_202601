@@ -725,6 +725,7 @@ function startMediapipeHands(){
       }
       try {
         if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+          console.log('video size:', video.videoWidth, 'x', video.videoHeight);
           // video から 640x480 の画像を canvas に描画（上半分 640x240 のみ）
           const ctx = canvas.getContext('2d');
           ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -755,6 +756,14 @@ function startMediapipeHands(){
         mpHands = new Hands({
           locateFile: (file) => {
             console.log('Hands locateFile requested:', file);
+            // .tflite ファイルの場合、mediapipe/ パスを除去
+            if (file.endsWith('.tflite')) {
+              const filename = file.split('/').pop(); // 最後のファイル名のみ取得
+              const tflitePath = `./hands/${filename}`;
+              console.log('  TFLITE file:', file, '-> resolved to:', tflitePath);
+              return tflitePath;
+            }
+            // SIMD WASM の場合は non-SIMD にフォールバック
             if (file.includes('simd_wasm')) {
               console.log('Switching from SIMD to non-SIMD WASM');
               const replacement = `./hands/${file.replace('simd_wasm_bin', 'wasm_bin')}`;
