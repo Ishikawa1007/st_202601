@@ -628,11 +628,10 @@ function onHandsResults(results){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   
   // 常に video から直接 canvas に描画（Hands 検出の有無に関わらず）
-　const video = document.querySelector('.mp_input_video_active');
-
+  const video = document.querySelector('.mp_input_video_active');
   if (video && video.videoWidth > 0 && video.videoHeight > 0) {
     try {
-      ctx.drawImage(video, 0, VIDEO_HEIGHT / 2, VIDEO_WIDTH, VIDEO_HEIGHT / 2, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT, 0, 0, canvas.width, canvas.height);
     } catch (e) {
       console.error('drawImage from video failed:', e);
     }
@@ -730,7 +729,7 @@ function startMediapipeHands(){
           const ctx = canvas.getContext('2d');
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           // video の上半分（0, 0, 640, 240）を canvas に描画
-          ctx.drawImage(video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(video, 0, VIDEO_HEIGHT/2, VIDEO_WIDTH, VIDEO_HEIGHT/2, 0, 0, canvas.width, canvas.height);
           
           // Canvas 画像を send() に渡す
           await mpHands.send({image: canvas});
