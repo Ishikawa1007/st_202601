@@ -632,7 +632,7 @@ function onHandsResults(results){
 
   if (video && video.videoWidth > 0 && video.videoHeight > 0) {
     try {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, VIDEO_HEIGHT / 2, VIDEO_WIDTH, VIDEO_HEIGHT / 2, 0, 0, canvas.width, canvas.height);
     } catch (e) {
       console.error('drawImage from video failed:', e);
     }
