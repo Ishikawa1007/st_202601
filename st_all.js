@@ -506,10 +506,19 @@ if (pracButton) { console.log('pracButton click listener attached'); pracButton.
   incorrectCount = 0;
   inputBuffer = '';
   updateInputDisplay();
-  // ゲーム中も手検出を継続する（停止していたため page4 で未接続になっていた）
-  if (!mpCamera) startMediapipeHands();
+  
+  // page4 では異なる canvas/video 要素を使用するため、
+  // camera を一度停止して、新しい要素で再初期化する
+  if (mpCamera) stopMediapipeHands();
+  
   if (page3) page3.style.display='none';
   if (page4) page4.style.display='flex';
+  
+  // page4 の canvas/video で camera を再起動
+  setTimeout(() => {
+    startMediapipeHands();
+  }, 100);
+  
   const mins = tslider ? tslider.value : 1;
   startTimer(mins);
   const level = lslider ? Number(lslider.value) : 1;
@@ -521,6 +530,7 @@ if (pracButton) { console.log('pracButton click listener attached'); pracButton.
 if (stopbutton) { console.log('stopbutton click listener attached'); stopbutton.addEventListener('click', ()=>{
   console.log('stopbutton clicked');
   stopTimer();
+  stopMediapipeHands();
   resetGameState();
   if (page4) page4.style.display='none';
   if (page1) page1.style.display='flex';
