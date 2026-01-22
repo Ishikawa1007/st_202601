@@ -767,21 +767,27 @@ function startMediapipeHands(){
         mpHands = new Hands({
           locateFile: (file) => {
             console.log('Hands locateFile requested:', file);
-            // .tflite ファイルの場合、mediapipe/ パスを除去
-            if (file.endsWith('.tflite')) {
-              const filename = file.split('/').pop(); // 最後のファイル名のみ取得
+            
+            // ファイル名だけを抽出（パスのプレフィックスを除去）
+            const filename = file.split('/').pop();
+            
+            // .tflite ファイルの場合
+            if (filename.endsWith('.tflite')) {
               const tflitePath = `./hands/${filename}`;
               console.log('  TFLITE file:', file, '-> resolved to:', tflitePath);
               return tflitePath;
             }
+            
             // SIMD WASM の場合は non-SIMD にフォールバック
-            if (file.includes('simd_wasm')) {
-              console.log('Switching from SIMD to non-SIMD WASM');
-              const replacement = `./hands/${file.replace('simd_wasm_bin', 'wasm_bin')}`;
+            if (filename.includes('simd_wasm')) {
+              const nonSimdFilename = filename.replace('simd_wasm_bin', 'wasm_bin');
+              const replacement = `./hands/${nonSimdFilename}`;
               console.log('  SIMD file:', file, '-> non-SIMD:', replacement);
               return replacement;
             }
-            return `./hands/${file}`;
+            
+            // その他のファイル
+            return `./hands/${filename}`;
           }
         });
         
