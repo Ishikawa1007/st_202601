@@ -561,39 +561,65 @@ function onHandsResults(results){
   
   const canvas = document.getElementById(canvasId);
   const status = document.getElementById(statusId);
-  if (!canvas) return;
+  if (!canvas) {
+    console.error('onHandsResults: Canvas not found', canvasId);
+    return;
+  }
   const ctx = canvas.getContext('2d');
-  ctx.save();
   
-  if (results.image) ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+  // 背景画像を描画
+  if (results.image) {
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+  } else {
+    console.warn('onHandsResults: No image in results');
+  }
+  
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0){
+    console.log('Hand detected, landmarks count:', results.multiHandLandmarks.length);
     const fingertipIndices = [4,8,12,16,20];
     const detected = {};
+    
     for (const landmarks of results.multiHandLandmarks){
       fingertipIndices.forEach(i=>{
-        const lm = landmarks[i]; if (!lm) return;
+        const lm = landmarks[i];
+        if (!lm) return;
+        
         const xPx = lm.x * canvas.width; 
         const yPx = lm.y * canvas.height;
         const xDiv = Math.round(xPx);
         const yDiv = Math.round(yPx);
+        
+        console.log(`Fingertip ${i}: (${xPx.toFixed(1)}, ${yPx.toFixed(1)})`);
+        
         // 指先のみを黄色で表示
         ctx.fillStyle = 'yellow'; 
+        ctx.strokeStyle = 'orange';
+        ctx.lineWidth = 2;
         ctx.beginPath(); 
         ctx.arc(xPx, yPx, 8, 0, 2*Math.PI); 
         ctx.fill();
+        ctx.stroke();
+        
         // 指先の番号を表示
         ctx.fillStyle = 'black'; 
-        ctx.font = '12px sans-serif'; 
-        ctx.fillText(String(i), xPx+10, yPy-8);
+        ctx.font = 'bold 12px sans-serif'; 
+        ctx.fillText(String(i), xPx+10, yPx-8);
+        
         detected[i] = { x: lm.x, y: lm.y, z: lm.z, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv };
       });
     }
+    
     try{ window.latestFingertips = detected; }catch(e){}
+    
+    // キーボードレイアウトを描画
     drawKeyboardLayout(canvas);
+    
+    // 入力をチェック
     checkKeyInput();
+    
     const infoEl = document.getElementById('mp_fingertips');
     if (infoEl) infoEl.textContent = JSON.stringify(detected);
-    if (status) status.textContent = '手検出: OK';
+    if (status) status.textContent = '手検出: OK (' + fingertipIndices.length + '指)';
     
     // 手検出成功時、ゲーム中ならタイマーを開始
     if (isPage4Active && !timerStarted && handsInitialized) {
@@ -605,7 +631,6 @@ function onHandsResults(results){
   } else {
     if (status) status.textContent = '手が見つかりません（video側は再生中）';
   }
-  ctx.restore();
 }
 
 function startMediapipeHands(){
