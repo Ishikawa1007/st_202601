@@ -584,6 +584,12 @@ function onHandsResults(results){
 function startMediapipeHands(){
   if (mpCamera) return;
   
+  // 現在アクティブなページを判定
+  const isPage4Active = (page4 && page4.style.display !== 'none');
+  const isPage3Active = (page3 && page3.style.display !== 'none');
+  
+  console.log('startMediapipeHands: page4=' + isPage4Active + ', page3=' + isPage3Active);
+  
   if (typeof Hands === 'undefined' || typeof Camera === 'undefined' || typeof drawConnectors === 'undefined') {
     console.warn('startMediapipeHands: Mediapipe libraries not loaded yet. Retrying...');
     console.warn('  Hands:', typeof Hands, 'Camera:', typeof Camera, 'drawConnectors:', typeof drawConnectors);
@@ -593,13 +599,20 @@ function startMediapipeHands(){
     return;
   }
   
-  const video = document.querySelector('.mp_input_video_active');  
-  const canvas = document.querySelector('.mp_output_canvas_active');
-  const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
-  
-  if (!video || !canvas) {
-    if (status) status.textContent = 'カメラ要素が見つかりません';
-    console.error('startMediapipeHands: video or canvas not found');
+  // ページに応じた要素を取得
+  let video, canvas, status;
+  if (isPage4Active) {
+    video = document.getElementById('mp_input_video_p4');
+    canvas = document.getElementById('mp_output_canvas_p4');
+    status = document.getElementById('mp_status_p4');
+    console.log('Using page4 elements: video=' + (video ? 'found' : 'NOT FOUND') + ', canvas=' + (canvas ? 'found' : 'NOT FOUND'));
+  } else if (isPage3Active) {
+    video = document.getElementById('mp_input_video_p3');
+    canvas = document.getElementById('mp_output_canvas_p3');
+    status = document.getElementById('mp_status_p3');
+    console.log('Using page3 elements: video=' + (video ? 'found' : 'NOT FOUND') + ', canvas=' + (canvas ? 'found' : 'NOT FOUND'));
+  } else {
+    console.error('startMediapipeHands: Neither page3 nor page4 is active');
     return;
   }
   
@@ -727,22 +740,28 @@ function startMediapipeHands(){
 }
 
 function stopMediapipeHands(){
+  console.log('stopMediapipeHands: stopping camera and hands');
   try{ if (mpCamera && typeof mpCamera.stop === 'function') mpCamera.stop(); }catch(e){}
   mpCamera = null;
   try{ if (mpHands && typeof mpHands.close === 'function') mpHands.close(); }catch(e){}
   mpHands = null;
   if (mpCanvasFallbackTimer){ clearInterval(mpCanvasFallbackTimer); mpCanvasFallbackTimer = null; }
-  const video =
-    document.querySelector('#page4 .mp_input_video_active') ||
-    document.querySelector('#page3 .mp_input_video_active');
-  const canvas =
-    document.querySelector('#page4 .mp_output_canvas_active') ||
-    document.querySelector('#page3 .mp_output_canvas_active');
-  const status =
-    document.getElementById('mp_status_p4') ||
-    document.getElementById('mp_status_p3');
-  if (canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
-  if (status) status.textContent = 'カメラ停止';
+  
+  // アクティブなページの要素をクリア
+  const isPage4Active = (page4 && page4.style.display !== 'none');
+  const isPage3Active = (page3 && page3.style.display !== 'none');
+  
+  if (isPage4Active) {
+    const canvas = document.getElementById('mp_output_canvas_p4');
+    const status = document.getElementById('mp_status_p4');
+    if (canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+    if (status) status.textContent = 'カメラ停止';
+  } else if (isPage3Active) {
+    const canvas = document.getElementById('mp_output_canvas_p3');
+    const status = document.getElementById('mp_status_p3');
+    if (canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+    if (status) status.textContent = 'カメラ停止';
+  }
 }
 
 // ============================================================
