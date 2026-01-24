@@ -684,6 +684,15 @@ function startMediapipeHands(){
       if (video.readyState < 2) return;
       if (video.videoWidth === 0) return;
       
+      if (!mpHands || !handsInitialized) {
+        if (!window._frameWarnCount) window._frameWarnCount = 0;
+        if (window._frameWarnCount % 30 === 0) {
+          console.warn('[onFrame] Hands not ready yet. handsInitialized=' + handsInitialized + ', mpHands=' + (!!mpHands));
+        }
+        window._frameWarnCount++;
+        return;
+      }
+      
       sending = true;
       try {
         if (video.videoWidth > 0 && video.videoHeight > 0) {
@@ -700,12 +709,21 @@ function startMediapipeHands(){
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(video, 0, actualH / 2, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
           
-          if (mpHands) await mpHands.send({image: canvas});
+          // Send to Hands
+          if (mpHands.send && typeof mpHands.send === 'function') {
+            await mpHands.send({image: canvas});
+          } else {
+            console.error('[onFrame] mpHands.send is not a function!');
+          }
         } else {
-          console.warn('[onFrame] video not ready: readyState=' + video.readyState + ', size=' + video.videoWidth + 'x' + video.videoHeight);
+          if (!window._emptyFrameCount) window._emptyFrameCount = 0;
+          if (window._emptyFrameCount % 60 === 0) {
+            console.warn('[onFrame] video not ready: readyState=' + video.readyState + ', size=' + video.videoWidth + 'x' + video.videoHeight);
+          }
+          window._emptyFrameCount++;
         }
       } catch (err) {
-        console.error('[onFrame] mpHands.send() error:', err.message || err);
+        console.error('[onFrame] error:', err.message || err);
       } finally {
         sending = false;
       }
@@ -720,35 +738,42 @@ function startMediapipeHands(){
     
     let handsInitTimeout = setTimeout(() => {
       try {
-        console.log('Hands ctor');
+        console.log('Hands ctor: Creating new Hands instance');
         mpHands = new Hands({
           locateFile: (file) => {
             console.log('Hands locateFile requested:', file);
             const filename = file.split('/').pop();
             const baseUrl = 'https://ishikawa1007.github.io/st_202601/hands/';
             const resolved = baseUrl + filename;
-            console.log('  Resolved to:', resolved);
+            console.log('  -> Resolved to:', resolved);
             return resolved;
           }
         });
         
+        console.log('Hands instance created, setting options...');
         mpHands.setOptions({
           modelComplexity: 0,
           maxNumHands: 2, 
           minDetectionConfidence: 0.5, 
           minTrackingConfidence: 0.5
         });
+        
+        console.log('Hands instance: registering onResults callback...');
         mpHands.onResults(onHandsResults);
         
         console.log('✓ mpHands initialized successfully');
         handsInitialized = true;
         if (status) status.textContent = 'カメラ接続成功。手を検出中...';
         
+        // Test: Force send one frame to verify it works
+        console.log('Hands init: Ready to receive frames');
+        
       } catch (err) {
         console.error('✗ Failed to initialize Hands:', err, err.stack);
         if (status) status.textContent = 'Hands 初期化失敗: ' + err.message;
+        handsInitialized = false;
       }
-    }, 500);
+    }, 300);
     
     if (!window._mpHandsRendered && !mpCanvasFallbackTimer){
       mpCanvasFallbackTimer = setInterval(()=>{
