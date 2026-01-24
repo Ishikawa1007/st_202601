@@ -238,6 +238,7 @@ function resetGameState() {
   correctCount = 0;
   incorrectCount = 0;
   inputBuffer = '';
+  timerStarted = false;
   updateInputDisplay();
   stopMediapipeHands();
 }
@@ -429,18 +430,17 @@ if (pracButton) {
     correctCount = 0;
     incorrectCount = 0;
     inputBuffer = '';
+    timerStarted = false;
     updateInputDisplay();
     if (mpCamera) stopMediapipeHands();
     if (page3) page3.style.display='none';
     if (page4) page4.style.display='flex';
-    setTimeout(() => {
-      startMediapipeHands();
-    }, 100);
-    const mins = tslider ? tslider.value : 1;
-    startTimer(mins);
     const level = lslider ? Number(lslider.value) : 1;
     const words = getWordsForLevel(level);
     loadWords(words);
+    setTimeout(() => {
+      startMediapipeHands();
+    }, 100);
   }); 
 }
 
@@ -484,6 +484,8 @@ let mpCamera = null;
 let mpHands = null;
 let mpCanvasFallbackTimer = null;
 let sending = false;
+let handsInitialized = false;
+let timerStarted = false;
 
 window.latestFingertips = {};
 window.mpUseMirror = true;
@@ -543,14 +545,19 @@ function onHandsResults(results){
     console.log(`[onHandsResults] called ${window._handsResultsCount} times`);
   }
   
-  const canvas = document.querySelector('.mp_output_canvas_active');
-  const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
+  // ページに応じた要素を取得
+  const isPage4Active = (page4 && page4.style.display !== 'none');
+  let canvasId = isPage4Active ? 'mp_output_canvas_p4' : 'mp_output_canvas_p3';
+  let statusId = isPage4Active ? 'mp_status_p4' : 'mp_status_p3';
+  
+  const canvas = document.getElementById(canvasId);
+  const status = document.getElementById(statusId);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.save();
   
   if (results.image) ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-  if (results.multiHandLandmarks && results.multiHandLandmarks.length>0){
+  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0){
     const fingertipIndices = [4,8,12,16,20];
     const detected = {};
     for (const landmarks of results.multiHandLandmarks){
@@ -575,6 +582,14 @@ function onHandsResults(results){
     const infoEl = document.getElementById('mp_fingertips');
     if (infoEl) infoEl.textContent = JSON.stringify(detected);
     if (status) status.textContent = '手検出: OK';
+    
+    // 手検出成功時、ゲーム中ならタイマーを開始
+    if (isPage4Active && !timerStarted && handsInitialized) {
+      timerStarted = true;
+      console.log('手検出成功。タイマー開始');
+      const mins = tslider ? tslider.value : 1;
+      startTimer(mins);
+    }
   } else {
     if (status) status.textContent = '手が見つかりません（video側は再生中）';
   }
@@ -674,34 +689,23 @@ function startMediapipeHands(){
             console.log('Hands locateFile requested:', file);
             const filename = file.split('/').pop();
             const baseUrl = 'https://ishikawa1007.github.io/st_202601/hands/';
-            
-            if (filename.endsWith('.tflite')) {
-              const tflitePath = baseUrl + filename;
-              console.log('  TFLITE file:', file, '-> resolved to:', tflitePath);
-              return tflitePath;
-            }
-            
-            if (filename.includes('simd_wasm')) {
-              const nonSimdFilename = filename.replace('simd_wasm_bin', 'wasm_bin');
-              const replacement = baseUrl + nonSimdFilename;
-              console.log('  SIMD file:', file, '-> non-SIMD:', replacement);
-              return replacement;
-            }
-            
-            return baseUrl + filename;
+            const resolved = baseUrl + filename;
+            console.log('  Resolved to:', resolved);
+            return resolved;
           }
         });
         
         mpHands.setOptions({
           modelComplexity: 0,
           maxNumHands: 2, 
-          minDetectionConfidence: 0.6, 
+          minDetectionConfidence: 0.5, 
           minTrackingConfidence: 0.5
         });
         mpHands.onResults(onHandsResults);
         
         console.log('✓ mpHands initialized successfully');
-        if (status) status.textContent = 'カメラ接続中';
+        handsInitialized = true;
+        if (status) status.textContent = 'カメラ接続成功。手を検出中...';
         
       } catch (err) {
         console.error('✗ Failed to initialize Hands:', err, err.stack);
@@ -745,6 +749,8 @@ function stopMediapipeHands(){
   mpCamera = null;
   try{ if (mpHands && typeof mpHands.close === 'function') mpHands.close(); }catch(e){}
   mpHands = null;
+  handsInitialized = false;
+  timerStarted = false;
   if (mpCanvasFallbackTimer){ clearInterval(mpCanvasFallbackTimer); mpCanvasFallbackTimer = null; }
   
   // アクティブなページの要素をクリア
