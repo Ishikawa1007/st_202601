@@ -117,23 +117,33 @@ function drawKeyboardLayout(canvas) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.save();
-  ctx.fillStyle = 'rgba(100, 100, 255, 0.3)';
-  ctx.strokeStyle = 'blue';
-  ctx.lineWidth = 2;
+  
   for (const [key, pos] of Object.entries(keyboardLayout)) {
     const radius = KEYBOARD_DETECTION_DISTANCE / 2;
+    
+    // 検出範囲を薄い円で表示
+    ctx.fillStyle = 'rgba(100, 150, 255, 0.2)';
+    ctx.strokeStyle = 'rgba(100, 150, 255, 0.5)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = 'blue';
-    ctx.font = '14px sans-serif';
+    
+    // キーの名前を中央に表示
+    ctx.fillStyle = '#0066ff';
+    ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(key, pos.x, pos.y);
-    ctx.fillStyle = 'rgba(100, 100, 255, 0.3)';
+    ctx.fillText(key, pos.x, pos.y - 6);
+    
+    // 座標を小さく表示
+    ctx.fillStyle = '#ff6600';
+    ctx.font = '9px monospace';
+    ctx.fillText('(' + pos.x + ',' + pos.y + ')', pos.x, pos.y + 8);
   }
   ctx.restore();
+}
 }
 
 // ============================================================
@@ -561,18 +571,21 @@ function onHandsResults(results){
     const fingertipIndices = [4,8,12,16,20];
     const detected = {};
     for (const landmarks of results.multiHandLandmarks){
-      if (typeof drawConnectors === 'function' && typeof HAND_CONNECTIONS !== 'undefined') {
-        drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color:'#00FF00', lineWidth:2});
-      }
-      if (typeof drawLandmarks === 'function') drawLandmarks(ctx, landmarks, {color:'#FF0000', lineWidth:1});
       fingertipIndices.forEach(i=>{
         const lm = landmarks[i]; if (!lm) return;
         const xPx = lm.x * canvas.width; 
         const yPx = lm.y * canvas.height;
         const xDiv = Math.round(xPx);
         const yDiv = Math.round(yPx);
-        ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(xPx, yPx, 6, 0, 2*Math.PI); ctx.fill();
-        ctx.fillStyle = 'black'; ctx.font='12px sans-serif'; ctx.fillText(String(i), xPx+6, yPx-6);
+        // 指先のみを黄色で表示
+        ctx.fillStyle = 'yellow'; 
+        ctx.beginPath(); 
+        ctx.arc(xPx, yPx, 8, 0, 2*Math.PI); 
+        ctx.fill();
+        // 指先の番号を表示
+        ctx.fillStyle = 'black'; 
+        ctx.font = '12px sans-serif'; 
+        ctx.fillText(String(i), xPx+10, yPy-8);
         detected[i] = { x: lm.x, y: lm.y, z: lm.z, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv };
       });
     }
