@@ -770,10 +770,11 @@ function startMediapipeHands(){
             
             // ファイル名だけを抽出（パスのプレフィックスを除去）
             const filename = file.split('/').pop();
+            const baseUrl = 'https://ishikawa1007.github.io/st_202601/hands/';
             
             // .tflite ファイルの場合
             if (filename.endsWith('.tflite')) {
-              const tflitePath = `./hands/${filename}`;
+              const tflitePath = baseUrl + filename;
               console.log('  TFLITE file:', file, '-> resolved to:', tflitePath);
               return tflitePath;
             }
@@ -781,13 +782,13 @@ function startMediapipeHands(){
             // SIMD WASM の場合は non-SIMD にフォールバック
             if (filename.includes('simd_wasm')) {
               const nonSimdFilename = filename.replace('simd_wasm_bin', 'wasm_bin');
-              const replacement = `./hands/${nonSimdFilename}`;
+              const replacement = baseUrl + nonSimdFilename;
               console.log('  SIMD file:', file, '-> non-SIMD:', replacement);
               return replacement;
             }
             
             // その他のファイル
-            return `./hands/${filename}`;
+            return baseUrl + filename;
           }
         });
         
