@@ -23,27 +23,49 @@
 <body>
   <h2>Camera Diagnostic</h2>
   <div>スマホでこのページを開いてください（HTTPS推奨／GitHub Pages推奨）</div>
+  
   <div style="margin-top:8px">
     <label>利用可能なビデオ入力: <select id="videoSelect"></select></label>
     <button id="start">Start</button>
     <button id="stop">Stop</button>
   </div>
+  
   <div style="margin-top:8px">
     <video id="v" autoplay playsinline muted style="width:320px;height:240px;background:#000"></video>
-  </div>
+  </div
+    
   <h4>ログ</h4>
   <div id="log">—</div>
 
 <script>
-const L = msg=>{ try{ console.log(msg); const d=document.getElementById('log'); d.textContent = (d.textContent==='—'?'':d.textContent+'\n') + msg; }catch(e){} };
-window.addEventListener('error', e=>{ L('window.error: '+(e && e.message)); });
-window.addEventListener('unhandledrejection', e=>{ L('unhandledrejection: '+(e && e.reason && e.reason.message ? e.reason.message : String(e.reason))); });
+const L = msg=>{ 
+  try{ 
+    console.log(msg); 
+    const d=document.getElementById('log'); 
+    d.textContent = (d.textContent==='—'?'':d.textContent+'\n') + msg; 
+  }catch(e){
+    console.error('ログ出力エラー:',e);
+  } 
+};
+  
+window.addEventListener('error', e=>{ 
+  L('window.error: '+(e && e.message)); 
+});
+window.addEventListener('unhandledrejection', e=>{ 
+  L('unhandledrejection: '+(e && e.reason && e.reason.message ? e.reason.message : String(e.reason))); 
+});
+
 async function enumerateDevices(){
   try{
     const devices = await navigator.mediaDevices.enumerateDevices();
-    const sel = document.getElementById('videoSelect'); sel.innerHTML='';
-    devices.filter(d=>d.kind==='videoinput').forEach(d=>{
-      const opt = document.createElement('option'); opt.value = d.deviceId; opt.textContent = d.label || `camera ${sel.length+1}`; sel.appendChild(opt);
+    const sel = document.getElementById('videoSelect'); 
+    sel.innerHTML='';
+    devices
+      .filter(d=>d.kind==='videoinput')
+      .forEach(d=>{
+      const opt = document.createElement('option'); 
+        opt.value = d.deviceId; opt.textContent = d.label || `camera ${sel.length+1}`; 
+        sel.appendChild(opt);
     });
     L('devices listed: ' + sel.length);
   }catch(e){ L('enumerateDevices error: '+e); }
@@ -56,6 +78,7 @@ async function start(){
   const deviceId = sel.value || undefined;
   const constraints = { video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' } };
   L('getUserMedia constraints: ' + JSON.stringify(constraints));
+  
   let attempted = 0;
   const tryGet = async (c)=>{
     attempted++;
@@ -64,7 +87,9 @@ async function start(){
       stream = await navigator.mediaDevices.getUserMedia(c);
       document.getElementById('v').srcObject = stream;
       L('stream started');
-      const tracks = stream.getVideoTracks(); L('tracks: '+tracks.length+'; label: '+(tracks[0] && tracks[0].label));
+      const tracks = stream.getVideoTracks(); 
+      L('tracks: '+tracks.length+'; 
+        label: '+(tracks[0] && tracks[0].label));
       return true;
     }catch(err){
       L('getUserMedia error: ' + err.name + ' — ' + err.message);
