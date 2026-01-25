@@ -119,28 +119,12 @@ function drawKeyboardLayout(canvas) {
   ctx.save();
   
   for (const [key, pos] of Object.entries(keyboardLayout)) {
-    const radius = KEYBOARD_DETECTION_DISTANCE / 2;
-    
-    // 検出範囲を薄い円で表示
-    ctx.fillStyle = 'rgba(100, 150, 255, 0.2)';
-    ctx.strokeStyle = 'rgba(100, 150, 255, 0.5)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.stroke();
-    
-    // キーの名前を中央に表示
-    ctx.fillStyle = '#0066ff';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(key, pos.x, pos.y - 6);
-    
-    // 座標を小さく表示
+    // 座標だけを表示
     ctx.fillStyle = '#ff6600';
     ctx.font = '9px monospace';
-    ctx.fillText('(' + pos.x + ',' + pos.y + ')', pos.x, pos.y + 8);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('(' + pos.x + ',' + pos.y + ')', pos.x, pos.y);
   }
   ctx.restore();
 }
