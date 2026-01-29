@@ -114,20 +114,138 @@ if (lslider) {
 // ⑤ キーボード座標・描画
 // ============================================================
 
+/**
+ * キーボード座標（多角形頂点）を調整する（デバッグ用）
+ * @param {string} key - キー名
+ * @param {number} pointIndex - 頂点インデックス (0-3)
+ * @param {number} dx - X方向の移動量
+ * @param {number} dy - Y方向の移動量
+ */
+function adjustKeyPoint(key, pointIndex, dx, dy) {
+  if (keyboardLayout[key] && keyboardLayout[key].points && keyboardLayout[key].points[pointIndex]) {
+    keyboardLayout[key].points[pointIndex].x += dx;
+    keyboardLayout[key].points[pointIndex].y += dy;
+    console.log(`キー "${key}" の頂点 ${pointIndex} を調整しました: (${keyboardLayout[key].points[pointIndex].x}, ${keyboardLayout[key].points[pointIndex].y})`);
+  } else {
+    console.error(`キー "${key}" または頂点 ${pointIndex} が見つかりません`);
+  }
+}
+
+/**
+ * キーボード座標をコンソールに出力（JavaScriptコピー用）
+ */
+function exportKeyboardLayout() {
+  const output = {};
+  for (const [key, keyData] of Object.entries(keyboardLayout)) {
+    output[key] = `{points: ${JSON.stringify(keyData.points)}}`;
+  }
+  console.log(JSON.stringify(output, null, 2));
+  return output;
+}
+
+/**
+ * 点が多角形内にあるかを判定（Ray casting アルゴリズム）
+ */
+function isPointInPolygon(px, py, polygon) {
+  if (!polygon || polygon.length < 3) return false;
+  
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x, yi = polygon[i].y;
+    const xj = polygon[j].x, yj = polygon[j].y;
+    
+    const intersect = ((yi > py) !== (yj > py)) && 
+                      (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 function drawKeyboardLayout(canvas) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.save();
   
-  for (const [key, pos] of Object.entries(keyboardLayout)) {
-    // 座標だけを表示
-    ctx.fillStyle = '#ff6600';
-    ctx.font = '9px monospace';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText('(' + pos.x + ',' + pos.y + ')', pos.x, pos.y);
+  for (const [key, keyData] of Object.entries(keyboardLayout)) {
+    const points = keyData.points;
+    if (!points || points.length < 3) continue;
+    
+    // キーボタンの背景（薄い色）
+    ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    
+    // キーボタンの枠線
+    ctx.strokeStyle = 'rgba(200, 200, 200, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // キーラベルを中心に表示
+    const centerX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+    const centerY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+    
+    ctx.fillStyle = '#cccccc';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(key, centerX, centerY);
   }
   ctx.restore();
+}
+
+/**
+ * 指先がホバーしているキーをハイライト表示
+ */
+function highlightHoveredKey(canvas, fingertip) {
+  if (!canvas || !fingertip) return;
+  
+  const ctx = canvas.getContext('2d');
+  const fingerX = fingertip.xPx;
+  const fingerY = fingertip.yPx;
+  
+  // 各キーをチェック
+  for (const [key, keyData] of Object.entries(keyboardLayout)) {
+    const points = keyData.points;
+    if (!points || points.length < 3) continue;
+    
+    // 多角形内判定
+    if (isPointInPolygon(fingerX, fingerY, points)) {
+      // ホバー中のキーをハイライト
+      ctx.fillStyle = 'rgba(255, 200, 0, 0.4)';
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.strokeStyle = 'rgba(255, 200, 0, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // キー情報をポップアップ表示
+      const centerX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+      const centerY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+      const labelY = centerY - 20;
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(centerX - 20, labelY - 12, 40, 18);
+      
+      ctx.fillStyle = '#ffff00';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(key, centerX, labelY);
+      
+      break;
+    }
+  }
 }
 
 // ============================================================
@@ -146,9 +264,17 @@ function checkKeyInput() {
   const fingertip = window.mpGetFingertip(8, { space: 'canvas' });
   if (!fingertip) return;
   
-  for (const [key, pos] of Object.entries(keyboardLayout)) {
-    const dist = Math.hypot(fingertip.xDiv - pos.x, fingertip.yDiv - pos.y);
-    if (dist <= KEYBOARD_DETECTION_DISTANCE) {
+  // 指先の座標（canvasピクセル単位）
+  const fingerX = fingertip.xPx;
+  const fingerY = fingertip.yPx;
+  
+  // 各キーの多角形領域をチェック
+  for (const [key, keyData] of Object.entries(keyboardLayout)) {
+    const points = keyData.points;
+    if (!points || points.length < 3) continue;
+    
+    // 多角形内判定
+    if (isPointInPolygon(fingerX, fingerY, points)) {
       inputBuffer += key;
       lastInputTime = now;
       updateInputDisplay();
@@ -598,6 +724,9 @@ function onHandsResults(results){
     
     // キーボードレイアウトを描画
     drawKeyboardLayout(canvas);
+    
+    // 指先がどのキーの上にあるかをハイライト
+    highlightHoveredKey(canvas, detected[8]);
     
     // 入力をチェック
     checkKeyInput();
