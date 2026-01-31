@@ -676,7 +676,24 @@ let timerStarted = false;
 window.latestFingertips = {};
 window.mpUseMirror = true;
 
-window.mpSetMirror = function(flag){ window.mpUseMirror = !!flag; };
+window.mpSetMirror = function(flag){
+  window.mpUseMirror = !!flag;
+  console.log('mpSetMirror: set to', window.mpUseMirror);
+  // Update Hands options if initialized
+  try{
+    if (mpHands && typeof mpHands.setOptions === 'function') {
+      mpHands.setOptions({ selfieMode: window.mpUseMirror });
+      console.log('mpSetMirror: mpHands.setOptions updated');
+    }
+  } catch(e) { console.warn('mpSetMirror: failed to update mpHands options', e); }
+  // Update immediate preview transforms for video/canvas elements
+  try{
+    const vids = document.querySelectorAll('#mp_input_video_p3, #mp_input_video_p4, video');
+    vids.forEach(v=>{ if (v && v.style) v.style.transform = window.mpUseMirror ? 'scaleX(-1)' : ''; });
+    const canvases = document.querySelectorAll('#mp_output_canvas_p3, #mp_output_canvas_p4, canvas');
+    canvases.forEach(c=>{ if (c && c.style) c.style.transform = window.mpUseMirror ? 'scaleX(-1)' : ''; });
+  } catch(e) { /* ignore */ }
+};
 
 window.mpNormToPixel = function(xNorm, yNorm, opts){
   opts = opts || {};
@@ -935,7 +952,8 @@ function startMediapipeHands(){
           modelComplexity: 0,
           maxNumHands: 2, 
           minDetectionConfidence: 0.5, 
-          minTrackingConfidence: 0.5
+          minTrackingConfidence: 0.5,
+          selfieMode: window.mpUseMirror
         });
         
         console.log('Hands instance: registering onResults callback...');
@@ -963,7 +981,15 @@ function startMediapipeHands(){
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const actualW = video.videoWidth;
             const actualH = video.videoHeight;
-            ctx.drawImage(video, 0, actualH / 2, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
+            if (window.mpUseMirror) {
+              ctx.save();
+              ctx.translate(canvas.width, 0);
+              ctx.scale(-1, 1);
+              ctx.drawImage(video, 0, actualH / 2, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
+              ctx.restore();
+            } else {
+              ctx.drawImage(video, 0, actualH / 2, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
+            }
             const st = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
             if (st) {
               if (mpHands) {
