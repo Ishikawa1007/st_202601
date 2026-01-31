@@ -154,6 +154,12 @@ html, body {
   padding: 8px 16px;
   margin:0;
 }
+
+/* Hide raw video inputs (mp_input_video_p3 / mp_input_video_p4) */
+.mp_input_video_p3,
+.mp_input_video_p4 {
+  display: none !important;
+}
 /*p4*/
 .stopbutton{
   font-size: 16px;
