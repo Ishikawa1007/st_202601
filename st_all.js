@@ -9,6 +9,7 @@ const HAND_CONNECTIONS = [
 ];
 
 const KEYBOARD_DETECTION_DISTANCE = 80; // ピクセル単位での検出距離
+const KEY_Y_OFFSET = 60; // キーY座標に追加するオフセット（px）
 const INPUT_DEBOUNCE = 300; // ミリ秒
 
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
@@ -203,7 +204,8 @@ function adjustKeyPoint(key, pointIndex, dx, dy) {
 function exportKeyboardLayout() {
   const output = {};
   for (const [key, keyData] of Object.entries(keyboardLayout)) {
-    output[key] = `{points: ${JSON.stringify(keyData.points)}}`;
+    const adj = keyData.points.map(p => ({ x: p.x, y: p.y + KEY_Y_OFFSET }));
+    output[key] = `{points: ${JSON.stringify(adj)}}`;
   }
   console.log(JSON.stringify(output, null, 2));
   return output;
@@ -233,7 +235,7 @@ function drawKeyboardLayout(canvas) {
   ctx.save();
   
   for (const [key, keyData] of Object.entries(keyboardLayout)) {
-    const points = keyData.points;
+    const points = keyData.points.map(p => ({ x: p.x, y: p.y + KEY_Y_OFFSET }));
     if (!points || points.length < 3) continue;
     
     // キーボタンの背景（薄い色）
@@ -276,7 +278,7 @@ function highlightHoveredKey(canvas, fingertip) {
   
   // 各キーをチェック
   for (const [key, keyData] of Object.entries(keyboardLayout)) {
-    const points = keyData.points;
+    const points = keyData.points.map(p => ({ x: p.x, y: p.y + KEY_Y_OFFSET }));
     if (!points || points.length < 3) continue;
     
     // 多角形内判定
@@ -336,7 +338,7 @@ function checkKeyInput() {
   
   // 各キーの多角形領域をチェック
   for (const [key, keyData] of Object.entries(keyboardLayout)) {
-    const points = keyData.points;
+    const points = keyData.points.map(p => ({ x: p.x, y: p.y + KEY_Y_OFFSET }));
     if (!points || points.length < 3) continue;
     
     // 多角形内判定
@@ -871,7 +873,7 @@ function startMediapipeHands(){
   const VIDEO_HEIGHT = 480;
   
   canvas.width = VIDEO_WIDTH;
-  canvas.height = VIDEO_HEIGHT / 2;
+  canvas.height = Math.round(VIDEO_HEIGHT * 3 / 4);
   
   console.log('Canvas initialized: ' + canvas.width + ' x ' + canvas.height);
   
@@ -896,15 +898,15 @@ function startMediapipeHands(){
           const actualW = video.videoWidth;
           const actualH = video.videoHeight;
           
-          if (canvas.width !== actualW || canvas.height !== Math.round(actualH / 2)) {
+          if (canvas.width !== actualW || canvas.height !== Math.round(actualH * 3 / 4)) {
             canvas.width = actualW;
-            canvas.height = Math.round(actualH / 2);
+            canvas.height = Math.round(actualH * 3 / 4);
             console.log('Canvas resized to:', canvas.width, 'x', canvas.height, 'from video:', actualW, 'x', actualH);
           }
           
           const ctx = canvas.getContext('2d');
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(video, 0, actualH / 2, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
           
           // Send to Hands
           if (mpHands.send && typeof mpHands.send === 'function') {
@@ -985,10 +987,10 @@ function startMediapipeHands(){
               ctx.save();
               ctx.translate(canvas.width, 0);
               ctx.scale(-1, 1);
-              ctx.drawImage(video, 0, actualH / 2, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
+              ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
               ctx.restore();
             } else {
-              ctx.drawImage(video, 0, actualH / 2, actualW, actualH / 2, 0, 0, canvas.width, canvas.height);
+              ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
             }
             const st = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
             if (st) {
