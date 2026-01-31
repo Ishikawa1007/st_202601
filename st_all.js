@@ -246,9 +246,9 @@ function drawKeyboardLayout(canvas) {
     ctx.closePath();
     ctx.fill();
     
-    // キーボタンの枠線
-    ctx.strokeStyle = 'rgba(200, 200, 200, 0.6)';
-    ctx.lineWidth = 1;
+    // キーボタンの枠線（黒で目立たせる）
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
     ctx.stroke();
     
     // キーラベルを中心に表示
