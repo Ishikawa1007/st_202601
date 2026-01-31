@@ -9,7 +9,7 @@ const HAND_CONNECTIONS = [
 ];
 
 const KEYBOARD_DETECTION_DISTANCE = 80; // ピクセル単位での検出距離
-const KEY_Y_OFFSET = 60; // キーY座標に追加するオフセット（px）
+const KEY_Y_OFFSET = 120; // キーY座標に追加するオフセット（px）
 const INPUT_DEBOUNCE = 300; // ミリ秒
 
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
