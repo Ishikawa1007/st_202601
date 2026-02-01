@@ -8,7 +8,6 @@ const HAND_CONNECTIONS = [
   [15, 16], [0, 17], [17, 18], [18, 19], [19, 20]
 ];
 
-const KEYBOARD_DETECTION_DISTANCE = 80; // ピクセル単位での検出距離
 const KEY_Y_OFFSET = 120; // キーY座標に追加するオフセット（px）
 const INPUT_DEBOUNCE = 300; // ミリ秒
 
@@ -233,7 +232,8 @@ function drawKeyboardLayout(canvas) {
     ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(key, centerX, centerY);
+    const displayKey = String(key).toUpperCase();
+    ctx.fillText(displayKey, centerX, centerY);
   }
   ctx.restore();
 }
@@ -281,7 +281,8 @@ function highlightHoveredKey(canvas, fingertip) {
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(key, centerX, labelY);
+      const displayKey = String(key).toUpperCase();
+      ctx.fillText(displayKey, centerX, labelY);
       
       break;
     }
