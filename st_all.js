@@ -9,6 +9,7 @@ const HAND_CONNECTIONS = [
 ];
 
 const KEY_Y_OFFSET = 120; // キーY座標に追加するオフセット（px）
+const FINGERTIP_RADIUS = 5; // 指先点の半径（px）
 const INPUT_DEBOUNCE = 300; // ミリ秒
 
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
@@ -316,10 +317,11 @@ function checkKeyInput() {
     
     // 多角形内判定
     if (isPointInPolygon(fingerX, fingerY, points)) {
-      inputBuffer += key;
+      const normalizedKey = String(key).toLowerCase();
+      inputBuffer += normalizedKey;
       lastInputTime = now;
       updateInputDisplay();
-      console.log(`Key detected: ${key}, Buffer: ${inputBuffer}`);
+      console.log(`Key detected: ${key} -> ${normalizedKey}, Buffer: ${inputBuffer}`);
       checkAnswer();
       break;
     }
@@ -765,14 +767,14 @@ function onHandsResults(results){
         ctx.strokeStyle = 'orange';
         ctx.lineWidth = 2;
         ctx.beginPath(); 
-        ctx.arc(xPx, yPx, 8, 0, 2*Math.PI); 
+        ctx.arc(xPx, yPx, FINGERTIP_RADIUS, 0, 2*Math.PI); 
         ctx.fill();
         ctx.stroke();
         
-        // 指先の番号を表示
+        // 指先の番号を表示（点のサイズに合わせてオフセットを調整）
         ctx.fillStyle = 'black'; 
         ctx.font = 'bold 12px sans-serif'; 
-        ctx.fillText(String(i), xPx+10, yPx-8);
+        ctx.fillText(String(i), xPx + FINGERTIP_RADIUS + 6, yPx - FINGERTIP_RADIUS - 4);
         
         detected[i] = { x: lm.x, y: lm.y, z: lm.z, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv };
       });
