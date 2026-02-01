@@ -8,8 +8,9 @@ const HAND_CONNECTIONS = [
   [15, 16], [0, 17], [17, 18], [18, 19], [19, 20]
 ];
 
-const KEY_Y_OFFSET = 120; // キーY座標に追加するオフセット（px）
+const KEY_Y_OFFSET = 100; // キーY座標に追加するオフセット（px）
 const FINGERTIP_RADIUS = 5; // 指先点の半径（px）
+const FINGERTIP_INDICES = [4, 8, 12, 16, 20]; // 入力対象の指先インデックス
 const INPUT_DEBOUNCE = 300; // ミリ秒
 
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
@@ -302,28 +303,31 @@ let incorrectCount = 0;
 function checkKeyInput() {
   const now = Date.now();
   if (now - lastInputTime < INPUT_DEBOUNCE) return;
-  
-  const fingertip = window.mpGetFingertip(8, { space: 'canvas' });
-  if (!fingertip) return;
-  
-  // 指先の座標（canvasピクセル単位）
-  const fingerX = fingertip.xPx;
-  const fingerY = fingertip.yPx;
-  
-  // 各キーの多角形領域をチェック
-  for (const [key, keyData] of Object.entries(keyboardLayout)) {
-    const points = keyData.points.map(p => ({ x: p.x, y: p.y + KEY_Y_OFFSET }));
-    if (!points || points.length < 3) continue;
-    
-    // 多角形内判定
-    if (isPointInPolygon(fingerX, fingerY, points)) {
-      const normalizedKey = String(key).toLowerCase();
-      inputBuffer += normalizedKey;
-      lastInputTime = now;
-      updateInputDisplay();
-      console.log(`Key detected: ${key} -> ${normalizedKey}, Buffer: ${inputBuffer}`);
-      checkAnswer();
-      break;
+
+  // 対象の複数指先を順にチェックして、先に見つかったものを入力として扱う
+  for (const idx of FINGERTIP_INDICES) {
+    const fingertip = window.mpGetFingertip(idx, { space: 'canvas' });
+    if (!fingertip) continue;
+
+    // 指先の座標（canvasピクセル単位）
+    const fingerX = fingertip.xPx;
+    const fingerY = fingertip.yPx;
+
+    // 各キーの多角形領域をチェック
+    for (const [key, keyData] of Object.entries(keyboardLayout)) {
+      const points = keyData.points.map(p => ({ x: p.x, y: p.y + KEY_Y_OFFSET }));
+      if (!points || points.length < 3) continue;
+
+      // 多角形内判定
+      if (isPointInPolygon(fingerX, fingerY, points)) {
+        const normalizedKey = String(key).toLowerCase();
+        inputBuffer += normalizedKey;
+        lastInputTime = now;
+        updateInputDisplay();
+        console.log(`Key detected by fingertip ${idx}: ${key} -> ${normalizedKey}, Buffer: ${inputBuffer}`);
+        checkAnswer();
+        return; // 1回のチェックあたり1入力のみ
+      }
     }
   }
 }
@@ -785,10 +789,12 @@ function onHandsResults(results){
     // キーボードレイアウトを描画
     drawKeyboardLayout(canvas);
     
-    // 指先がどのキーの上にあるかをハイライト
-    highlightHoveredKey(canvas, detected[8]);
+    // 指先がどのキーの上にあるかをハイライト（全ての対象指先でチェック）
+    for (const idx of FINGERTIP_INDICES) {
+      if (detected[idx]) highlightHoveredKey(canvas, detected[idx]);
+    }
     
-    // 入力をチェック
+    // 入力をチェック（全指先対応）
     checkKeyInput();
     
     const infoEl = document.getElementById('mp_fingertips');
