@@ -177,3 +177,12 @@ html, body {
   height:60px;
   background-color: orange;
 }
+
+/* Display MediaPipe output canvases at half visual size while keeping full internal resolution */
+.mp_canvas_half {
+  transform-origin: top left;
+  transform: scale(0.5);
+  display: inline-block;
+  width: 50%; /* layout size reduced while canvas keeps full internal resolution */
+  image-rendering: optimizeQuality;
+}

@@ -8,7 +8,7 @@ const HAND_CONNECTIONS = [
   [15, 16], [0, 17], [17, 18], [18, 19], [19, 20]
 ];
 
-const KEY_Y_OFFSET = -20; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
+const KEY_Y_OFFSET = -140; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
 const FINGERTIP_RADIUS = 5; // 指先点の半径（px）
 const FINGERTIP_INDICES = [4, 8, 12, 16, 20]; // 入力対象の指先インデックス
 const INPUT_DEBOUNCE = 300; // ミリ秒
@@ -853,8 +853,9 @@ function startMediapipeHands(){
   
   console.log('startMediapipeHands: initializing Camera first');
   
-  const VIDEO_WIDTH = 640;
-  const VIDEO_HEIGHT = 480;
+  // Use full window size for processing (full-screen capture), display scaled down via CSS
+  const VIDEO_WIDTH = Math.max(window.innerWidth || 640, 640);
+  const VIDEO_HEIGHT = Math.max(window.innerHeight || 480, 480);
   
   canvas.width = VIDEO_WIDTH;
   canvas.height = Math.round(VIDEO_HEIGHT * 3 / 4);
