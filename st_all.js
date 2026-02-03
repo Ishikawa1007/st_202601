@@ -114,7 +114,7 @@ const stButton = document.querySelector('.stbutton');
 const backButton_a = document.querySelector('.backbutton_a');
 const prepButton = document.querySelector('.prepbutton');
 const backButton_b = document.querySelector('.backbutton_b');
-const pracButton = document.querySlector('.pracbutton');
+const pracButton = document.querySelector('.pracbutton');
 const stopbutton = document.querySelector('.stopbutton');
 const homebutton = document.querySelector('.homebutton');
 
