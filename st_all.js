@@ -114,7 +114,7 @@ const stButton = document.querySelector('.stbutton');
 const backButton_a = document.querySelector('.backbutton_a');
 const prepButton = document.querySelector('.prepbutton');
 const backButton_b = document.querySelector('.backbutton_b');
-const pracButton = document.querySelector('.pracbutton');
+const pracButton = document.querySlector('.pracbutton');
 const stopbutton = document.querySelector('.stopbutton');
 const homebutton = document.querySelector('.homebutton');
 
@@ -772,7 +772,7 @@ function onHandsResults(results){
         const xDiv = Math.round(xPx);
         const yDiv = Math.round(yPx);
         
-        console.log(`Fingertip ${i}: (${xPx.toFixed(1)}, ${yPx.toFixed(1)})`);
+        console.log(`Fingertip ${i}: (x:${xPx.toFixed(1)}, y:${yPx.toFixed(1)}, z:${(lm.z !== undefined ? lm.z.toFixed(3) : 'n/a')})`);
         
         // 指先のみを黄色で表示
         ctx.fillStyle = 'yellow'; 
