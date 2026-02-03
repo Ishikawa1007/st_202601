@@ -180,9 +180,10 @@ html, body {
 
 /* Display MediaPipe output canvases at half visual size while keeping full internal resolution */
 .mp_canvas_half {
-  transform-origin: top left;
-  transform: scale(0.5);
+  /* Use CSS layout width to control visual size; avoid transform so JS resizing doesn't change visual percentage */
   display: inline-block;
-  width: 50%; /* layout size reduced while canvas keeps full internal resolution */
+  width: 50%; /* visual width is 50% of container */
+  height: auto;
+  max-width: 100%;
   image-rendering: optimizeQuality;
 }
