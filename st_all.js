@@ -277,7 +277,6 @@ function highlightHoveredKey(canvas, fingertip) {
       ctx.strokeStyle = 'rgba(255, 200, 0, 0.8)';
       ctx.lineWidth = 2;
       ctx.stroke();
-      
       // キー情報をポップアップ表示
       const centerX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
       const centerY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
@@ -1058,7 +1057,7 @@ waitForMediapipe().then(success => {
       '<div role="dialog" aria-modal="true" style="background:#fff;color:#000;padding:16px;border-radius:10px;max-width:520px;width:100%;text-align:center;font-size:16px;line-height:1.4;">',
       '  <div>がめんがたてむきです。よこむきでプレイしてください。</div>',
       '  <div style="height:10px"></div>',
-      `  <button id="${REMINDER_ID}_close" style="padding:8px 14px;font-size:15px;border-radius:6px;border:0;background:#1976d2;color:#fff;cursor:pointer;">閉じる</button>`,
+      `  <button id="${REMINDER_ID}_close" style="padding:8px 14px;font-size:15px;border-radius:6px;border:0;background:#1976d2;color:#fff;cursor:pointer;">とじる</button>`,
       '</div>'
     ].join('');
     document.body.appendChild(wrapper);
