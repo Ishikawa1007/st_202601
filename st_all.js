@@ -733,7 +733,7 @@ function onHandsResults(results){
   
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0){
     console.log('Hand detected, landmarks count:', results.multiHandLandmarks.length);
-    const fingertipIndices = [4,8,12,16,20];
+    const fingertipIndices = [8,12,16,20];
     const detected = {};
     
     for (const landmarks of results.multiHandLandmarks){
