@@ -754,7 +754,7 @@ function onHandsResults(results){
   
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0){
     console.log('Hand detected, landmarks count:', results.multiHandLandmarks.length);
-    const fingertipIndices = [4,8,12,16,20];
+    const fingertipIndices = [4,8,12,16];
     const detected = {};
     
     for (const landmarks of results.multiHandLandmarks){
@@ -778,12 +778,7 @@ function onHandsResults(results){
         ctx.fill();
         ctx.stroke();
         
-        // 指先の番号を表示（点のサイズに合わせてオフセットを調整）
-        ctx.fillStyle = 'black'; 
-        ctx.font = 'bold 12px sans-serif'; 
-        ctx.fillText(String(i), xPx + FINGERTIP_RADIUS + 6, yPx - FINGERTIP_RADIUS - 4);
-        
-        detected[i] = { x: lm.x, y: lm.y, z: lm.z, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv };
+        detected[i] = { x: lm.x, y: lm.y, z: lm.z * 100, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv };
       });
     }
     
