@@ -177,3 +177,13 @@ html, body {
   height:60px;
   background-color: orange;
 }
+
+/* Display MediaPipe output canvases at half visual size while keeping full internal resolution */
+.mp_canvas_half {
+  /* Use CSS layout width to control visual size; avoid transform so JS resizing doesn't change visual percentage */
+  display: inline-block;
+  width: 50%; /* visual width is 50% of container */
+  height: auto;
+  max-width: 100%;
+  image-rendering: optimizeQuality;
+}

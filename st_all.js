@@ -8,71 +8,51 @@ const HAND_CONNECTIONS = [
   [15, 16], [0, 17], [17, 18], [18, 19], [19, 20]
 ];
 
-const KEY_Y_OFFSET = -20; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
+
+const KEY_Y_OFFSET = 120; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
 const FINGERTIP_RADIUS = 5; // 指先点の半径（px）
-const FINGERTIP_INDICES = [4, 8, 12, 16, 20]; // 入力対象の指先インデックス
+const FINGERTIP_INDICES = [8, 12, 16, 20]; // 入力対象の指先インデックス
 const INPUT_DEBOUNCE = 300; // ミリ秒
 
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
 const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば',4:'みじかい文',5:'ながい文'};
 
 // キーボードの形（多角形方式）
-const keyboardLayout = {
-  /*
-  '1': { points: [ {x:0,y:217}, {x:22,y:210}, {x:65,y:211}, {x:42,y:219} ]  },
-  '2': { points: [ {x:42,y:219}, {x:65,y:211}, {x:108,y:213}, {x:88,y:220} ]  },
-  '3': { points: [ {x:88,y:220}, {x:108,y:213}, {x:150,y:214}, {x:134,y:221} ] },
-  '4': { points: [ {x:134,y:221}, {x:150,y:214}, {x:193,y:214}, {x:183,y:221} ] },
-  '5': { points: [ {x:183,y:221}, {x:193,y:214}, {x:237,y:214}, {x:230,y:221} ] },
-  '6': { points: [ {x:230,y:221}, {x:237,y:214}, {x:281,y:215}, {x:276,y:222} ] },
-  '7': { points: [ {x:276,y:222}, {x:281,y:215}, {x:323,y:216}, {x:323,y:222} ] },
-  '8': { points: [ {x:323,y:222}, {x:323,y:216}, {x:366,y:216}, {x:371,y:223} ] },
-  '9': { points: [ {x:371,y:223}, {x:366,y:216}, {x:411,y:217}, {x:420,y:224} ] },
-  '0': { points: [ {x:420,y:224}, {x:411,y:217}, {x:457,y:218}, {x:467,y:224} ] },
-  '-': { points: [ {x:467,y:224}, {x:457,y:218}, {x:501,y:219}, {x:515,y:225} ] },
-  '^': { points: [ {x:515,y:225}, {x:501,y:219}, {x:547,y:219}, {x:566,y:226} ] },
-  '\\': { points: [ {x:566,y:2256}, {x:547,y:219}, {x:590,y:220}, {x:612,y:227} ] },
-  */
-  //2行目
-  'Q': { points: [ {x:47,y:210}, {x:65,y:206}, {x:105,y:207}, {x:90,y:212} ] },
-  'W': { points: [ {x:90,y:212}, {x:105,y:207}, {x:146,y:207}, {x:133,y:213} ] },
-  'E': { points: [ {x:133,y:213}, {x:146,y:207}, {x:185,y:207}, {x:176,y:214} ] },
-  'R': { points: [ {x:176,y:214}, {x:185,y:207}, {x:226,y:207}, {x:219,y:214} ] },
-  'T': { points: [ {x:219,y:214}, {x:226,y:207}, {x:266,y:208}, {x:262,y:214} ] },
-  'Y': { points: [ {x:262,y:214}, {x:266,y:208}, {x:306,y:209}, {x:307,y:215} ] },
-  'U': { points: [ {x:307,y:215}, {x:306,y:209}, {x:346,y:210}, {x:358,y:216} ] },
-  'I': { points: [ {x:348,y:216}, {x:346,y:210}, {x:387,y:211}, {x:391,y:216} ] },
-  'O': { points: [ {x:391,y:216}, {x:387,y:211}, {x:429,y:212}, {x:436,y:217} ] },
-  'P': { points: [ {x:436,y:217}, {x:429,y:212}, {x:468,y:212}, {x:479,y:218} ] },
-  '@': { points: [ {x:479,y:218}, {x:468,y:212}, {x:508,y:213}, {x:523,y:219} ] },
-  '[': { points: [ {x:523,y:219}, {x:508,y:213}, {x:548,y:214}, {x:570,y:220} ] },
-  'ent': { points: [ {x:570,y:220}, {x:548,y:214}, {x:558,y:214}, {x:540,y:209}, {x:589,y:206}, {x:640,y:216} ] },
-  //3行目
-  'A': { points: [ {x:79,y:206}, {x:95,y:201}, {x:132,y:202}, {x:119,y:207} ] },
-  'S': { points: [ {x:119,y:207}, {x:132,y:202}, {x:169,y:202}, {x:159,y:207} ] },
-  'D': { points: [ {x:159,y:207}, {x:169,y:202}, {x:207,y:203}, {x:200,y:207} ] },
-  'F': { points: [ {x:200,y:207}, {x:207,y:203}, {x:243,y:203}, {x:237,y:207} ] },
-  'G': { points: [ {x:237,y:207}, {x:243,y:203}, {x:278,y:203}, {x:277,y:208} ] },
-  'H': { points: [ {x:277,y:208}, {x:278,y:203}, {x:317,y:204}, {x:316,y:209} ] },
-  'J': { points: [ {x:316,y:209}, {x:317,y:204}, {x:354,y:205}, {x:355,y:210} ] },
-  'K': { points: [ {x:355,y:210}, {x:354,y:205}, {x:395,y:211}, {x:390,y:206} ] },
-  'L': { points: [ {x:390,y:206}, {x:395,y:211}, {x:426,y:206}, {x:434,y:212} ] },
-  ';': { points: [ {x:434,y:212}, {x:426,y:206}, {x:465,y:207}, {x:476,y:212} ] },
-  ':': { points: [ {x:476,y:212}, {x:465,y:207}, {x:504,y:208}, {x:516,y:213} ] },
-  ']': { points: [ {x:516,y:213}, {x:504,y:208}, {x:540,y:209}, {x:558,y:214} ] },
+  const keyboardLayout = {
+  // 1行目
+  'Q': { points: [ {x:0,y:101}, {x:28,y:95}, {x:84 ,y:95 }, {x:58 ,y:105 } ]  },
+  'W': { points: [ {x:58 ,y:105}, {x:84,y:95}, {x:143,y:96}, {x:121,y:106} ]  },
+  'e': { points: [ {x:121 ,y:106 }, {x:143 ,y:96 }, {x:201 ,y:96 }, {x:187 ,y:106 } ]  },
+  'r': { points: [ {x:187 ,y:106 }, {x:201 ,y:96 }, {x:258 ,y:96 }, {x:253 ,y:107 } ]  },
+  't': { points: [ {x:253 ,y:107 }, {x:258 ,y:96 }, {x:317 ,y:96 }, {x:317 ,y:108 } ]  },
+  'y': { points: [ {x:317 ,y:108 }, {x:317 ,y:96 },  {x:373 ,y:98 },{x:382 ,y:108 } ]  },
+  'u': { points: [ {x:382 ,y:108 }, {x:373,y:98 }, {x:434 ,y:99 }, {x:447 ,y:110 } ]  },
+  'i': { points: [ {x:447 ,y:110 }, {x:434 ,y:99 }, {x:493 ,y:99 }, {x:515 ,y:111 } ]  },
+  'o': { points: [ {x:515 ,y:111 }, {x:493 ,y:99 }, {x:551 ,y:101 }, {x:579 ,y:111 } ]  },
+  'p': { points: [ {x:579 ,y:111 }, { x:551 ,y:101 }, {x:608 ,y:101 }, {x:640 ,y:111 } ]  },
+  // 2行目
+  'a': { points: [ {x:45 ,y:95 }, {x:70 ,y:87 }, {x:120 ,y:88 }, {x:101 ,y:96 } ]  },
+  's': { points: [ {x:101 ,y:96 }, {x:120 ,y:88 }, {x:172 ,y:88 }, {x:159 ,y:96 } ]  },
+  'd': { points: [ {x:159 ,y:96 }, {x:172 ,y:88 }, {x:225 ,y:88 }, {x:215 ,y:96 } ]  },
+  'f': { points: [ {x:215 ,y:96 }, {x:225 ,y:88 }, {x:277 ,y:88 }, {x:272 ,y:97 } ]  },
+  'g': { points: [ {x:272 ,y:97 }, {x:277 ,y:88 }, {x:328 ,y:89 }, {x:329 ,y:97 } ]  },
+  'h': { points: [ {x:329 ,y:97 }, {x:328 ,y:89 }, {x:379 ,y:90 }, {x:387 ,y:98 } ]  },
+  'j': { points: [ {x:387 ,y:98 }, {x:379 ,y:90 }, {x:432 ,y:91 }, {x:445 ,y:99 } ]  },
+  'k': { points: [ {x:445 ,y:99 }, {x:432 ,y:91 }, {x:485 ,y:91 }, {x:504 ,y:100 } ]  },
+  'l': { points: [ {x:504 ,y:100 }, {x:485 ,y:91 }, {x:538 ,y:93 }, {x:560 ,y:101 } ]  },
+  // 3行目
+  'z': { points: [ {x:93 ,y:87 }, {x:112 ,y:81 }, {x:158 ,y:81 }, {x:145 ,y:88 } ]  },
+  'x': { points: [ {x:145 ,y:88 }, {x:158 ,y:81 },  {x:205 ,y:82 },{x:197 ,y:89 }, ]  },
+  'c': { points: [ {x:197 ,y:89 }, {x:205 ,y:82 }, {x:253 ,y:82 }, {x:247 ,y:89 } ]  },
+  'v': { points: [ {x:247 ,y:89 }, {x:253 ,y:82 }, {x:299 ,y:81 }, {x:299 ,y:88 } ]  },
+  'b': { points: [ {x:299 ,y:88 }, {x:299 ,y:81 }, {x:346 ,y:83 }, {x:349 ,y:90 } ]  },
+  'n': { points: [ {x:349 ,y:90 }, {x:346 ,y:83 }, {x:392 ,y:84 }, {x:401 ,y:90 } ]  },
+  'm': { points: [ {x:401 ,y:90 }, {x:392 ,y:84 }, {x:441 ,y:84 }, {x:452 ,y:91 } ]  },
+  ',': { points: [ {x:452 ,y:91 }, {x:441 ,y:84 }, {x:490 ,y:84 }, {x:506 ,y:92 } ]  },
+  '.': { points: [ {x:506 ,y:92 }, {x:490 ,y:84 }, {x:536 ,y:86 }, {x:558 ,y:93 } ]  },
+  };
 
-  'Z': { points: [ {x:115,y:202}, {x:128,y:197}, {x:162,y:198}, {x:153,y:202} ] },
-  'X': { points: [ {x:153,y:202}, {x:162,y:198}, {x:198,y:198}, {x:189,y:203} ] },
-  'C': { points: [ {x:189,y:203}, {x:198,y:198}, {x:232,y:199}, {x:227,y:203} ] },
-  'V': { points: [ {x:227,y:203}, {x:232,y:199}, {x:267,y:199}, {x:263,y:204} ] },
-  'B': { points: [ {x:263,y:204}, {x:267,y:199}, {x:301,y:199}, {x:300,y:204} ] },
-  'N': { points: [ {x:300,y:204}, {x:301,y:199}, {x:336,y:200}, {x:336,y:204} ] },
-  'M': { points: [ {x:336,y:204}, {x:336,y:200}, {x:374,y:206}, {x:371,y:201} ] },
-  ',': { points: [ {x:371,y:201}, {x:374,y:206}, {x:405,y:201}, {x:411,y:206} ] },
-  '.': { points: [ {x:411,y:206}, {x:405,y:201}, {x:440,y:201}, {x:449,y:206} ] },
-  '/': { points: [ {x:449,y:206}, {x:440,y:201}, {x:476,y:203}, {x:487,y:208} ] },
-  '\\': { points: [ {x:487,y:208}, {x:476,y:203}, {x:512,y:204}, {x:524,y:208} ] }
-};
+
 
 
 // ============================================================
@@ -273,7 +253,6 @@ function highlightHoveredKey(canvas, fingertip) {
       ctx.strokeStyle = 'rgba(255, 200, 0, 0.8)';
       ctx.lineWidth = 2;
       ctx.stroke();
-      
       // キー情報をポップアップ表示
       const centerX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
       const centerY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
@@ -754,7 +733,7 @@ function onHandsResults(results){
   
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0){
     console.log('Hand detected, landmarks count:', results.multiHandLandmarks.length);
-    const fingertipIndices = [4,8,12,16];
+    const fingertipIndices = [8,12,16,20];
     const detected = {};
     
     for (const landmarks of results.multiHandLandmarks){
@@ -767,7 +746,7 @@ function onHandsResults(results){
         const xDiv = Math.round(xPx);
         const yDiv = Math.round(yPx);
         
-        console.log(`Fingertip ${i}: (${xPx.toFixed(1)}, ${yPx.toFixed(1)})`);
+        console.log(`Fingertip ${i}: (x:${xPx.toFixed(1)}, y:${yPx.toFixed(1)}, z:${(lm.z !== undefined ? lm.z.toFixed(3) : 'n/a')})`);
         
         // 指先のみを黄色で表示
         ctx.fillStyle = 'yellow'; 
@@ -848,8 +827,9 @@ function startMediapipeHands(){
   
   console.log('startMediapipeHands: initializing Camera first');
   
-  const VIDEO_WIDTH = 640;
-  const VIDEO_HEIGHT = 480;
+  // Use full window size for processing (full-screen capture), display scaled down via CSS
+  const VIDEO_WIDTH = Math.max(window.innerWidth || 640, 640);
+  const VIDEO_HEIGHT = Math.max(window.innerHeight || 480, 480);
   
   canvas.width = VIDEO_WIDTH;
   canvas.height = Math.round(VIDEO_HEIGHT * 3 / 4);
@@ -1048,7 +1028,7 @@ waitForMediapipe().then(success => {
       '<div role="dialog" aria-modal="true" style="background:#fff;color:#000;padding:16px;border-radius:10px;max-width:520px;width:100%;text-align:center;font-size:16px;line-height:1.4;">',
       '  <div>がめんがたてむきです。よこむきでプレイしてください。</div>',
       '  <div style="height:10px"></div>',
-      `  <button id="${REMINDER_ID}_close" style="padding:8px 14px;font-size:15px;border-radius:6px;border:0;background:#1976d2;color:#fff;cursor:pointer;">閉じる</button>`,
+      `  <button id="${REMINDER_ID}_close" style="padding:8px 14px;font-size:15px;border-radius:6px;border:0;background:#1976d2;color:#fff;cursor:pointer;">とじる</button>`,
       '</div>'
     ].join('');
     document.body.appendChild(wrapper);
