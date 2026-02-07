@@ -746,7 +746,7 @@ function onHandsResults(results){
         const xDiv = Math.round(xPx);
         const yDiv = Math.round(yPx);
         
-        console.log(`Fingertip ${i}: (x:${xPx.toFixed(1)}, y:${yPx.toFixed(1)}, z:${(lm.z !== undefined ? lm.z.toFixed(3) : 'n/a')})`);
+        console.log(`Fingertip ${i}: (x:${xPx.toFixed(1)}, y:${yPx.toFixed(1)}, z:${(lm.z !== undefined ? (lm.z * 100).toFixed(1) : 'n/a')})`);
         
         // 指先のみを黄色で表示
         ctx.fillStyle = 'yellow'; 
