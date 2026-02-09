@@ -701,64 +701,72 @@ window.mpDistance = function(i1,i2, opts){
   return Math.hypot(ax - bx, ay - by);
 };
 
-function onHandsResults(results){
-  try{ window._mpHandsRendered = true; }catch(e){}
-  if (mpCanvasFallbackTimer){ clearInterval(mpCanvasFallbackTimer); mpCanvasFallbackTimer = null; }
-  
-  if (!window._handsResultsCount) window._handsResultsCount = 0;
-  window._handsResultsCount++;
-  if (window._handsResultsCount % 30 === 0) {
-    console.log(`[onHandsResults] called ${window._handsResultsCount} times`);
+/**
+ * handsLandmarks: results.multiHandLandmarks
+ * 戻り値:
+ * {
+ *   right: { r8, r12, r16, r20 } | null,
+ *   left : { l8, l12, l16, l20 } | null
+ * }
+ */
+function extractHandsData(handsLandmarks) {
+  if (!handsLandmarks || handsLandmarks.length === 0) {
+    return { right: null, left: null };
   }
+
+  // 各手から「手首x」と「4指」を取り出す
+  const hands = handsLandmarks.map(landmarks => {
+    const wrist = landmarks[0]; // 手首
+
+    // 親指除外 → 4指
+    const fingers = [8, 12, 16, 20].map(i => ({
+      index: i,
+      x: landmarks[i].x,
+      y: landmarks[i].y,
+      z: landmarks[i].z
+    }));
+
+    return {
+      wristX: wrist.x,
+      fingers
+    };
+  });
+
+  // 手首xが大きい方を右手とする
+  hands.sort((a, b) => b.wristX - a.wristX);
+
+  let rightHand = null;
+  let leftHand  = null;
+
+  if (hands.length >= 1) rightHand = hands[0];
+  if (hands.length >= 2) leftHand  = hands[1];
+
+  return {
+    right: rightHand ? assignFingerNames(rightHand.fingers, 'r') : null,
+    left : leftHand  ? assignFingerNames(leftHand.fingers, 'l')  : null
+  };
+
   
-  // ページに応じた要素を取得
-  const isPage4Active = (page4 && page4.style.display !== 'none');
-  let canvasId = isPage4Active ? 'mp_output_canvas_p4' : 'mp_output_canvas_p3';
-  let statusId = isPage4Active ? 'mp_status_p4' : 'mp_status_p3';
-  
-  const canvas = document.getElementById(canvasId);
-  const status = document.getElementById(statusId);
-  if (!canvas) {
-    console.error('onHandsResults: Canvas not found', canvasId);
-    return;
-  }
-  const ctx = canvas.getContext('2d');
-  
-  // 背景画像を描画
-  if (results.image) {
-    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-  } else {
-    console.warn('onHandsResults: No image in results');
-  }
-  
-  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0){
-    console.log('Hand detected, landmarks count:', results.multiHandLandmarks.length);
-    const fingertipIndices = [8,12,16,20];
-    const detected = {};
-    
-    for (const landmarks of results.multiHandLandmarks){
-      fingertipIndices.forEach(i=>{
-        const lm = landmarks[i];
-        if (!lm) return;
-        
-        const xPx = lm.x * canvas.width; 
-        const yPx = lm.y * canvas.height;
-        const xDiv = Math.round(xPx);
-        const yDiv = Math.round(yPx);
-        
-        console.log(`Fingertip ${i}: (x:${xPx.toFixed(1)}, y:${yPx.toFixed(1)}, z:${(lm.z !== undefined ? (lm.z * 100).toFixed(1) : 'n/a')})`);
-        
-        // 指先のみを黄色で表示
-        ctx.fillStyle = 'yellow'; 
-        ctx.strokeStyle = 'orange';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); 
-        ctx.arc(xPx, yPx, FINGERTIP_RADIUS, 0, 2*Math.PI); 
-        ctx.fill();
-        ctx.stroke();
-        
-        detected[i] = { x: lm.x, y: lm.y, z: lm.z * 100, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv };
-      });
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0){
+      const handsData = extractHandsData(results.multiHandLandmarks);
+
+      // 右手
+      if (handsData.right){
+        const { r8, r12, r16, r20 } = handsData.right;
+       // 描画・判定用にまとめる
+        detected.r8  = r8;
+        detected.r12 = r12;
+        detected.r16 = r16;
+        detected.r20 = r20;
+      }
+
+     // 左手
+    if (handsData.left){
+      const { l8, l12, l16, l20 } = handsData.left;
+      detected.l8  = l8;
+      detected.l12 = l12;
+      detected.l16 = l16;
+      detected.l20 = l20;
     }
     
     try{ window.latestFingertips = detected; }catch(e){}
@@ -766,12 +774,9 @@ function onHandsResults(results){
     // キーボードレイアウトを描画
     drawKeyboardLayout(canvas);
     
-    // 指先がどのキーの上にあるかをハイライト（全ての対象指先でチェック）
-    for (const idx of FINGERTIP_INDICES) {
-      if (detected[idx]) highlightHoveredKey(canvas, detected[idx]);
+    for (const key in detected){
+    highlightHoveredKey(canvas, detected[key]);
     }
-    
-    // 入力をチェック（全指先対応）
     checkKeyInput();
     
     const infoEl = document.getElementById('mp_fingertips');
