@@ -713,7 +713,6 @@ function extractHandsData(handsLandmarks) {
   if (!handsLandmarks || handsLandmarks.length === 0) {
     return { right: null, left: null };
   }
-
   // 各手から「手首x」と「4指」を取り出す
   const hands = handsLandmarks.map(landmarks => {
     const wrist = landmarks[0]; // 手首
@@ -923,7 +922,7 @@ function startMediapipeHands(){
         });
         
         console.log('Hands instance: registering onResults callback...');
-        mpHands.onResults(extraHandsData);
+        mpHands.onResults(extractHandsData);
         
         console.log('✓ mpHands initialized successfully');
         handsInitialized = true;
