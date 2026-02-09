@@ -702,87 +702,92 @@ window.mpDistance = function(i1,i2, opts){
 };
 
 /**
- * handsLandmarks: results.multiHandLandmarks
- * 戻り値:
+ * Extract structured hand fingertip data from either a Mediapipe
+ * results object or directly from multiHandLandmarks array.
+ * Returns:
  * {
  *   right: { r8, r12, r16, r20 } | null,
  *   left : { l8, l12, l16, l20 } | null
  * }
  */
-function extractHandsData(handsLandmarks) {
+function extractHandsData(input) {
+  const handsLandmarks = Array.isArray(input) ? input : (input && input.multiHandLandmarks) ? input.multiHandLandmarks : null;
   if (!handsLandmarks || handsLandmarks.length === 0) {
     return { right: null, left: null };
   }
-  // 各手から「手首x」と「4指」を取り出す
-  const hands = handsLandmarks.map(landmarks => {
-    const wrist = landmarks[0]; // 手首
 
-    // 親指除外 → 4指
+  const hands = handsLandmarks.map(landmarks => {
+    const wrist = landmarks[0];
     const fingers = [8, 12, 16, 20].map(i => ({
       index: i,
       x: landmarks[i].x,
       y: landmarks[i].y,
       z: landmarks[i].z
     }));
-
-    return {
-      wristX: wrist.x,
-      fingers
-    };
+    return { wristX: wrist.x, fingers };
   });
 
-  // 手首xが大きい方を右手とする
   hands.sort((a, b) => b.wristX - a.wristX);
 
   let rightHand = null;
-  let leftHand  = null;
-
+  let leftHand = null;
   if (hands.length >= 1) rightHand = hands[0];
-  if (hands.length >= 2) leftHand  = hands[1];
+  if (hands.length >= 2) leftHand = hands[1];
 
   return {
     right: rightHand ? assignFingerNames(rightHand.fingers, 'r') : null,
-    left : leftHand  ? assignFingerNames(leftHand.fingers, 'l')  : null
+    left: leftHand ? assignFingerNames(leftHand.fingers, 'l') : null
   };
+}
 
-  
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0){
-      const handsData = extractHandsData(results.multiHandLandmarks);
+/**
+ * Map an array of finger landmarks to named fingertip objects.
+ * fingers: [{index,x,y,z}, ...]
+ * prefix: 'r' or 'l'
+ */
+function assignFingerNames(fingers, prefix) {
+  const out = {};
+  if (!Array.isArray(fingers)) return out;
+  for (const f of fingers) {
+    const key = prefix + f.index;
+    const pos = window.mpNormToPixel(f.x, f.y) || { xPx: 0, yPx: 0 };
+    out[key] = { x: f.x, y: f.y, z: f.z, xPx: pos.xPx, yPx: pos.yPx };
+  }
+  return out;
+}
 
-      // 右手
-      if (handsData.right){
-        const { r8, r12, r16, r20 } = handsData.right;
-       // 描画・判定用にまとめる
-        detected.r8  = r8;
-        detected.r12 = r12;
-        detected.r16 = r16;
-        detected.r20 = r20;
-      }
+/**
+ * Mediapipe onResults handler: accepts the full results object
+ * and updates UI / state accordingly.
+ */
+function onHandsResults(results) {
+  const canvas = document.querySelector('.mp_output_canvas_active') || document.getElementById('mp_output_canvas_p4') || document.getElementById('mp_output_canvas_p3');
+  const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
+  const isPage4Active = (page4 && page4.style.display !== 'none');
+  const detected = {};
 
-     // 左手
-    if (handsData.left){
+  if (results && results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+    const handsData = extractHandsData(results);
+
+    if (handsData.right) {
+      const { r8, r12, r16, r20 } = handsData.right;
+      detected.r8 = r8; detected.r12 = r12; detected.r16 = r16; detected.r20 = r20;
+    }
+    if (handsData.left) {
       const { l8, l12, l16, l20 } = handsData.left;
-      detected.l8  = l8;
-      detected.l12 = l12;
-      detected.l16 = l16;
-      detected.l20 = l20;
+      detected.l8 = l8; detected.l12 = l12; detected.l16 = l16; detected.l20 = l20;
     }
-    
-    try{ window.latestFingertips = detected; }catch(e){}
-    
-    // キーボードレイアウトを描画
+
+    try { window.latestFingertips = detected; } catch(e) {}
+
     drawKeyboardLayout(canvas);
-    
-    for (const key in detected){
-    highlightHoveredKey(canvas, detected[key]);
-    }
+    for (const key in detected) highlightHoveredKey(canvas, detected[key]);
     checkKeyInput();
-    
+
     const infoEl = document.getElementById('mp_fingertips');
     if (infoEl) infoEl.textContent = JSON.stringify(detected);
-    if (status) status.textContent = '手検出: OK (' + fingertipIndices.length + '指)';
-    
-    // 手検出成功時、ゲーム中ならタイマーを開始
+    if (status) status.textContent = '手検出: OK (' + Object.keys(detected).length + '指)';
+
     if (isPage4Active && !timerStarted && handsInitialized) {
       timerStarted = true;
       console.log('手検出成功。タイマー開始');
@@ -791,6 +796,7 @@ function extractHandsData(handsLandmarks) {
     }
   } else {
     if (status) status.textContent = '手が見つかりません（video側は再生中）';
+    try { window.latestFingertips = {}; } catch(e) {}
   }
 }
 
@@ -922,7 +928,7 @@ function startMediapipeHands(){
         });
         
         console.log('Hands instance: registering onResults callback...');
-        mpHands.onResults(extractHandsData);
+        mpHands.onResults(onHandsResults);
         
         console.log('✓ mpHands initialized successfully');
         handsInitialized = true;
@@ -946,15 +952,8 @@ function startMediapipeHands(){
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const actualW = video.videoWidth;
             const actualH = video.videoHeight;
-            if (window.mpUseMirror) {
-              ctx.save();
-              ctx.translate(canvas.width, 0);
-              ctx.scale(-1, 1);
-              ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
-              ctx.restore();
-            } else {
-              ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
-            }
+            // Draw video raw into canvas; visual mirroring is handled by CSS transforms
+            ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
             const st = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
             if (st) {
               if (mpHands) {
