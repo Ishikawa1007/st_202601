@@ -923,7 +923,7 @@ function startMediapipeHands(){
         });
         
         console.log('Hands instance: registering onResults callback...');
-        mpHands.onResults(onHandsResults);
+        mpHands.onResults(extraHandsData);
         
         console.log('✓ mpHands initialized successfully');
         handsInitialized = true;
