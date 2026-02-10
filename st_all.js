@@ -53,6 +53,32 @@ const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば
   };
 
 
+  function extractFingerData(landmarks, handSide) {
+  const fingerIds = [8, 12, 16, 20];
+
+  const fingers = fingerIds.map(id => ({
+    id,
+    x: landmarks[id].x,
+    y: landmarks[id].y,
+    z: landmarks[id].z
+  }));
+
+  // x座標でソート（画面基準）
+  fingers.sort((a, b) => a.x - b.x);
+
+  const prefix = handSide === 'Right' ? 'r' : 'l';
+
+  return {
+    wristX: landmarks[0].x,
+    fingers: fingers.map((f, i) => ({
+      name: `${prefix}${fingerIds[i]}`,
+      x: f.x,
+      y: f.y,
+      z: f.z
+    }))
+  };
+}
+
 
 
 // ============================================================
