@@ -178,12 +178,12 @@ html, body {
   background-color: orange;
 }
 
-/* Display MediaPipe output canvases at half visual size while keeping full internal resolution */
+/* Display MediaPipe output canvases at fixed 640x240 size */
 .mp_canvas_half {
-  /* Use CSS layout width to control visual size; avoid transform so JS resizing doesn't change visual percentage */
+  /* Fixed size canvas: 640x240 pixels */
   display: inline-block;
-  width: 50%; /* visual width is 50% of container */
-  height: auto;
+  width: 640px;
+  height: 240px;
   max-width: 100%;
   image-rendering: optimizeQuality;
 }

@@ -827,12 +827,13 @@ function startMediapipeHands(){
   
   console.log('startMediapipeHands: initializing Camera first');
   
-  // Use full window size for processing (full-screen capture), display scaled down via CSS
+  // Use full window size for processing (full-screen capture), display at fixed 640x240
   const VIDEO_WIDTH = Math.max(window.innerWidth || 640, 640);
   const VIDEO_HEIGHT = Math.max(window.innerHeight || 480, 480);
   
-  canvas.width = VIDEO_WIDTH;
-  canvas.height = Math.round(VIDEO_HEIGHT * 3 / 4);
+  // キャンバスを固定サイズ 640x240 に設定
+  canvas.width = 640;
+  canvas.height = 240;
   
   console.log('Canvas initialized: ' + canvas.width + ' x ' + canvas.height);
   
@@ -857,10 +858,11 @@ function startMediapipeHands(){
           const actualW = video.videoWidth;
           const actualH = video.videoHeight;
           
-          if (canvas.width !== actualW || canvas.height !== Math.round(actualH * 3 / 4)) {
-            canvas.width = actualW;
-            canvas.height = Math.round(actualH * 3 / 4);
-            console.log('Canvas resized to:', canvas.width, 'x', canvas.height, 'from video:', actualW, 'x', actualH);
+          // キャンバスを常に 640x240 の固定サイズに保つ
+          if (canvas.width !== 640 || canvas.height !== 240) {
+            canvas.width = 640;
+            canvas.height = 240;
+            console.log('Canvas reset to fixed size: 640 x 240');
           }
           
           const ctx = canvas.getContext('2d');
