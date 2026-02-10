@@ -728,13 +728,6 @@ window.mpNormToPixel = function(xNorm, yNorm, opts){
   }
   const w = opts.width || (canvas && canvas.width) || 640;
   const h = opts.height || (canvas && canvas.height) || 480;
-  // Mediapipe selfieMode時は座標がすでにミラーリングされているため、ここでは反転しない
-  // CSS scaleX(-1)で画面表示を反転させているので、座標も合わせて反転する
-  let xPx = xNorm * w;
-  if (window.mpUseMirror) {
-    xPx = w - xPx;
-  }
-  return { xPx: xPx, yPx: yNorm * h };
 };
 
 window.mpPixelToNorm = function(xPx, yPx, opts){
