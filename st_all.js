@@ -715,11 +715,22 @@ window.mpSetMirror = function(flag){
 
 window.mpNormToPixel = function(xNorm, yNorm, opts){
   opts = opts || {};
-  const canvas = document.querySelector('.mp_output_canvas_active');
+  // Canvas参照の優先順: アクティブなページのCanvas -> 指定されたサイズ
+  let canvas = document.querySelector('.mp_output_canvas_active');
+  if (!canvas) {
+    const page4 = document.getElementById('page4');
+    const page3 = document.getElementById('page3');
+    if (page4 && page4.style.display !== 'none') {
+      canvas = document.getElementById('mp_output_canvas_p4');
+    } else if (page3 && page3.style.display !== 'none') {
+      canvas = document.getElementById('mp_output_canvas_p3');
+    }
+  }
   const w = opts.width || (canvas && canvas.width) || 640;
   const h = opts.height || (canvas && canvas.height) || 480;
+  // Mediapipe selfieMode時は座標がすでにミラーリングされているため、ここでは反転しない
+  // CSS scaleX(-1)で画面表示を反転させているので、座標も合わせて反転する
   let xPx = xNorm * w;
-  // ミラーリング対応（selfieMode時はx座標を反転）
   if (window.mpUseMirror) {
     xPx = w - xPx;
   }
@@ -808,10 +819,30 @@ function extractHandsData(input) {
 function assignFingerNames(fingers, prefix) {
   const out = {};
   if (!Array.isArray(fingers)) return out;
+  
+  // Canvas参照を取得（正確な幅を使用）
+  let canvas = document.querySelector('.mp_output_canvas_active');
+  if (!canvas) {
+    const page4 = document.getElementById('page4');
+    const page3 = document.getElementById('page3');
+    if (page4 && page4.style.display !== 'none') {
+      canvas = document.getElementById('mp_output_canvas_p4');
+    } else if (page3 && page3.style.display !== 'none') {
+      canvas = document.getElementById('mp_output_canvas_p3');
+    }
+  }
+  const w = (canvas && canvas.width) || 640;
+  const h = (canvas && canvas.height) || 480;
+  
   for (const f of fingers) {
     const key = prefix + f.index;
-    const pos = window.mpNormToPixel(f.x, f.y) || { xPx: 0, yPx: 0 };
-    out[key] = { x: f.x, y: f.y, z: f.z, xPx: pos.xPx, yPx: pos.yPx };
+    // 正規化座標からピクセル座標に変換
+    let xPx = f.x * w;
+    if (window.mpUseMirror) {
+      xPx = w - xPx;
+    }
+    const yPx = f.y * h;
+    out[key] = { x: f.x, y: f.y, z: f.z, xPx: xPx, yPx: yPx };
   }
   return out;
 }
@@ -840,13 +871,21 @@ function onHandsResults(results) {
 
     try { window.latestFingertips = detected; } catch(e) {}
 
-    drawKeyboardLayout(canvas);
-    drawFingertipMarkers(canvas, detected);
-    for (const key in detected) highlightHoveredKey(canvas, detected[key]);
+    if (canvas) {
+      drawKeyboardLayout(canvas);
+      drawFingertipMarkers(canvas, detected);
+      for (const key in detected) highlightHoveredKey(canvas, detected[key]);
+    }
     checkKeyInput();
 
     const infoEl = document.getElementById('mp_fingertips');
-    if (infoEl) infoEl.textContent = JSON.stringify(detected);
+    if (infoEl) {
+      const debugInfo = {};
+      for (const k in detected) {
+        debugInfo[k] = { xPx: detected[k].xPx, yPx: detected[k].yPx };
+      }
+      infoEl.textContent = JSON.stringify(debugInfo);
+    }
     if (status) status.textContent = '手検出: OK (' + Object.keys(detected).length + '指)';
 
     if (isPage4Active && !timerStarted && handsInitialized) {
