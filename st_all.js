@@ -250,6 +250,35 @@ function drawKeyboardLayout(canvas) {
 }
 
 /**
+ * 指先の点を描画（視覚化用）
+ */
+function drawFingertipMarkers(canvas, detectedFingertips) {
+  if (!canvas || !detectedFingertips || Object.keys(detectedFingertips).length === 0) return;
+  
+  const ctx = canvas.getContext('2d');
+  
+  for (const [fingerName, fingertip] of Object.entries(detectedFingertips)) {
+    if (!fingertip || fingertip.xPx === undefined || fingertip.yPx === undefined) continue;
+    
+    const x = fingertip.xPx;
+    const y = fingertip.yPx;
+    
+    // 指先を赤い円で描画
+    ctx.fillStyle = '#ff0000';
+    ctx.beginPath();
+    ctx.arc(x, y, FINGERTIP_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 指の名前をラベルとして表示
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(fingerName, x + 8, y - 5);
+  }
+}
+
+/**
  * 指先がホバーしているキーをハイライト表示
  */
 function highlightHoveredKey(canvas, fingertip) {
@@ -689,7 +718,12 @@ window.mpNormToPixel = function(xNorm, yNorm, opts){
   const canvas = document.querySelector('.mp_output_canvas_active');
   const w = opts.width || (canvas && canvas.width) || 640;
   const h = opts.height || (canvas && canvas.height) || 480;
-  return { xPx: xNorm * w, yPx: yNorm * h };
+  let xPx = xNorm * w;
+  // ミラーリング対応（selfieMode時はx座標を反転）
+  if (window.mpUseMirror) {
+    xPx = w - xPx;
+  }
+  return { xPx: xPx, yPx: yNorm * h };
 };
 
 window.mpPixelToNorm = function(xPx, yPx, opts){
@@ -807,6 +841,7 @@ function onHandsResults(results) {
     try { window.latestFingertips = detected; } catch(e) {}
 
     drawKeyboardLayout(canvas);
+    drawFingertipMarkers(canvas, detected);
     for (const key in detected) highlightHoveredKey(canvas, detected[key]);
     checkKeyInput();
 
