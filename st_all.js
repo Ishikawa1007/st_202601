@@ -1,5 +1,5 @@
 // ============================================================
-// ① 定数・設定
+// 定数・設定
 // ============================================================
 
 const HAND_CONNECTIONS = [
@@ -52,6 +52,32 @@ const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば
   '.': { points: [ {x:506 ,y:92 }, {x:490 ,y:84 }, {x:536 ,y:86 }, {x:558 ,y:93 } ]  },
   };
 
+
+  function extractFingerData(landmarks, handSide) {
+  const fingerIds = [8, 12, 16, 20];
+
+  const fingers = fingerIds.map(id => ({
+    id,
+    x: landmarks[id].x,
+    y: landmarks[id].y,
+    z: landmarks[id].z
+  }));
+
+  // x座標でソート（画面基準）
+  fingers.sort((a, b) => a.x - b.x);
+
+  const prefix = handSide === 'Right' ? 'r' : 'l';
+
+  return {
+    wristX: landmarks[0].x,
+    fingers: fingers.map((f, i) => ({
+      name: `${prefix}${fingerIds[i]}`,
+      x: f.x,
+      y: f.y,
+      z: f.z
+    }))
+  };
+}
 
 
 
@@ -221,6 +247,35 @@ function drawKeyboardLayout(canvas) {
     ctx.fillText(displayKey, centerX, centerY);
   }
   ctx.restore();
+}
+
+/**
+ * 指先の点を描画（視覚化用）
+ */
+function drawFingertipMarkers(canvas, detectedFingertips) {
+  if (!canvas || !detectedFingertips || Object.keys(detectedFingertips).length === 0) return;
+  
+  const ctx = canvas.getContext('2d');
+  
+  for (const [fingerName, fingertip] of Object.entries(detectedFingertips)) {
+    if (!fingertip || fingertip.xPx === undefined || fingertip.yPx === undefined) continue;
+    
+    const x = fingertip.xPx;
+    const y = fingertip.yPx;
+    
+    // 指先を赤い円で描画
+    ctx.fillStyle = '#ff0000';
+    ctx.beginPath();
+    ctx.arc(x, y, FINGERTIP_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 指の名前をラベルとして表示
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(fingerName, x + 8, y - 5);
+  }
 }
 
 /**
@@ -660,10 +715,19 @@ window.mpSetMirror = function(flag){
 
 window.mpNormToPixel = function(xNorm, yNorm, opts){
   opts = opts || {};
-  const canvas = document.querySelector('.mp_output_canvas_active');
+  // Canvas参照の優先順: アクティブなページのCanvas -> 指定されたサイズ
+  let canvas = document.querySelector('.mp_output_canvas_active');
+  if (!canvas) {
+    const page4 = document.getElementById('page4');
+    const page3 = document.getElementById('page3');
+    if (page4 && page4.style.display !== 'none') {
+      canvas = document.getElementById('mp_output_canvas_p4');
+    } else if (page3 && page3.style.display !== 'none') {
+      canvas = document.getElementById('mp_output_canvas_p3');
+    }
+  }
   const w = opts.width || (canvas && canvas.width) || 640;
   const h = opts.height || (canvas && canvas.height) || 480;
-  return { xPx: xNorm * w, yPx: yNorm * h };
 };
 
 window.mpPixelToNorm = function(xPx, yPx, opts){
@@ -701,84 +765,122 @@ window.mpDistance = function(i1,i2, opts){
   return Math.hypot(ax - bx, ay - by);
 };
 
-function onHandsResults(results){
-  try{ window._mpHandsRendered = true; }catch(e){}
-  if (mpCanvasFallbackTimer){ clearInterval(mpCanvasFallbackTimer); mpCanvasFallbackTimer = null; }
-  
-  if (!window._handsResultsCount) window._handsResultsCount = 0;
-  window._handsResultsCount++;
-  if (window._handsResultsCount % 30 === 0) {
-    console.log(`[onHandsResults] called ${window._handsResultsCount} times`);
+/**
+ * Extract structured hand fingertip data from either a Mediapipe
+ * results object or directly from multiHandLandmarks array.
+ * Returns:
+ * {
+ *   right: { r8, r12, r16, r20 } | null,
+ *   left : { l8, l12, l16, l20 } | null
+ * }
+ */
+function extractHandsData(input) {
+  const handsLandmarks = Array.isArray(input) ? input : (input && input.multiHandLandmarks) ? input.multiHandLandmarks : null;
+  if (!handsLandmarks || handsLandmarks.length === 0) {
+    return { right: null, left: null };
   }
+
+  const hands = handsLandmarks.map(landmarks => {
+    const wrist = landmarks[0];
+    const fingers = [8, 12, 16, 20].map(i => ({
+      index: i,
+      x: landmarks[i].x,
+      y: landmarks[i].y,
+      z: landmarks[i].z
+    }));
+    return { wristX: wrist.x, fingers };
+  });
+
+  hands.sort((a, b) => b.wristX - a.wristX);
+
+  let rightHand = null;
+  let leftHand = null;
+  if (hands.length >= 1) rightHand = hands[0];
+  if (hands.length >= 2) leftHand = hands[1];
+
+  return {
+    right: rightHand ? assignFingerNames(rightHand.fingers, 'r') : null,
+    left: leftHand ? assignFingerNames(leftHand.fingers, 'l') : null
+  };
+}
+
+/**
+ * Map an array of finger landmarks to named fingertip objects.
+ * fingers: [{index,x,y,z}, ...]
+ * prefix: 'r' or 'l'
+ */
+function assignFingerNames(fingers, prefix) {
+  const out = {};
+  if (!Array.isArray(fingers)) return out;
   
-  // ページに応じた要素を取得
-  const isPage4Active = (page4 && page4.style.display !== 'none');
-  let canvasId = isPage4Active ? 'mp_output_canvas_p4' : 'mp_output_canvas_p3';
-  let statusId = isPage4Active ? 'mp_status_p4' : 'mp_status_p3';
-  
-  const canvas = document.getElementById(canvasId);
-  const status = document.getElementById(statusId);
+  // Canvas参照を取得（正確な幅を使用）
+  let canvas = document.querySelector('.mp_output_canvas_active');
   if (!canvas) {
-    console.error('onHandsResults: Canvas not found', canvasId);
-    return;
-  }
-  const ctx = canvas.getContext('2d');
-  
-  // 背景画像を描画
-  if (results.image) {
-    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-  } else {
-    console.warn('onHandsResults: No image in results');
-  }
-  
-  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0){
-    console.log('Hand detected, landmarks count:', results.multiHandLandmarks.length);
-    const fingertipIndices = [8,12,16,20];
-    const detected = {};
-    
-    for (const landmarks of results.multiHandLandmarks){
-      fingertipIndices.forEach(i=>{
-        const lm = landmarks[i];
-        if (!lm) return;
-        
-        const xPx = lm.x * canvas.width; 
-        const yPx = lm.y * canvas.height;
-        const xDiv = Math.round(xPx);
-        const yDiv = Math.round(yPx);
-        
-        console.log(`Fingertip ${i}: (x:${xPx.toFixed(1)}, y:${yPx.toFixed(1)}, z:${(lm.z !== undefined ? (lm.z * 100).toFixed(1) : 'n/a')})`);
-        
-        // 指先のみを黄色で表示
-        ctx.fillStyle = 'yellow'; 
-        ctx.strokeStyle = 'orange';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); 
-        ctx.arc(xPx, yPx, FINGERTIP_RADIUS, 0, 2*Math.PI); 
-        ctx.fill();
-        ctx.stroke();
-        
-        detected[i] = { x: lm.x, y: lm.y, z: lm.z * 100, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv };
-      });
+    const page4 = document.getElementById('page4');
+    const page3 = document.getElementById('page3');
+    if (page4 && page4.style.display !== 'none') {
+      canvas = document.getElementById('mp_output_canvas_p4');
+    } else if (page3 && page3.style.display !== 'none') {
+      canvas = document.getElementById('mp_output_canvas_p3');
     }
-    
-    try{ window.latestFingertips = detected; }catch(e){}
-    
-    // キーボードレイアウトを描画
-    drawKeyboardLayout(canvas);
-    
-    // 指先がどのキーの上にあるかをハイライト（全ての対象指先でチェック）
-    for (const idx of FINGERTIP_INDICES) {
-      if (detected[idx]) highlightHoveredKey(canvas, detected[idx]);
+  }
+  const w = (canvas && canvas.width) || 640;
+  const h = (canvas && canvas.height) || 480;
+  
+  for (const f of fingers) {
+    const key = prefix + f.index;
+    // 正規化座標からピクセル座標に変換
+    let xPx = f.x * w;
+    if (window.mpUseMirror) {
+      xPx = w - xPx;
     }
-    
-    // 入力をチェック（全指先対応）
+    const yPx = f.y * h;
+    out[key] = { x: f.x, y: f.y, z: f.z, xPx: xPx, yPx: yPx };
+  }
+  return out;
+}
+
+/**
+ * Mediapipe onResults handler: accepts the full results object
+ * and updates UI / state accordingly.
+ */
+function onHandsResults(results) {
+  const canvas = document.querySelector('.mp_output_canvas_active') || document.getElementById('mp_output_canvas_p4') || document.getElementById('mp_output_canvas_p3');
+  const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
+  const isPage4Active = (page4 && page4.style.display !== 'none');
+  const detected = {};
+
+  if (results && results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+    const handsData = extractHandsData(results);
+
+    if (handsData.right) {
+      const { r8, r12, r16, r20 } = handsData.right;
+      detected.r8 = r8; detected.r12 = r12; detected.r16 = r16; detected.r20 = r20;
+    }
+    if (handsData.left) {
+      const { l8, l12, l16, l20 } = handsData.left;
+      detected.l8 = l8; detected.l12 = l12; detected.l16 = l16; detected.l20 = l20;
+    }
+
+    try { window.latestFingertips = detected; } catch(e) {}
+
+    if (canvas) {
+      drawKeyboardLayout(canvas);
+      drawFingertipMarkers(canvas, detected);
+      for (const key in detected) highlightHoveredKey(canvas, detected[key]);
+    }
     checkKeyInput();
-    
+
     const infoEl = document.getElementById('mp_fingertips');
-    if (infoEl) infoEl.textContent = JSON.stringify(detected);
-    if (status) status.textContent = '手検出: OK (' + fingertipIndices.length + '指)';
-    
-    // 手検出成功時、ゲーム中ならタイマーを開始
+    if (infoEl) {
+      const debugInfo = {};
+      for (const k in detected) {
+        debugInfo[k] = { xPx: detected[k].xPx, yPx: detected[k].yPx };
+      }
+      infoEl.textContent = JSON.stringify(debugInfo);
+    }
+    if (status) status.textContent = '手検出: OK (' + Object.keys(detected).length + '指)';
+
     if (isPage4Active && !timerStarted && handsInitialized) {
       timerStarted = true;
       console.log('手検出成功。タイマー開始');
@@ -787,6 +889,7 @@ function onHandsResults(results){
     }
   } else {
     if (status) status.textContent = '手が見つかりません（video側は再生中）';
+    try { window.latestFingertips = {}; } catch(e) {}
   }
 }
 
@@ -942,15 +1045,8 @@ function startMediapipeHands(){
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const actualW = video.videoWidth;
             const actualH = video.videoHeight;
-            if (window.mpUseMirror) {
-              ctx.save();
-              ctx.translate(canvas.width, 0);
-              ctx.scale(-1, 1);
-              ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
-              ctx.restore();
-            } else {
-              ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
-            }
+            // Draw video raw into canvas; visual mirroring is handled by CSS transforms
+            ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
             const st = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
             if (st) {
               if (mpHands) {
