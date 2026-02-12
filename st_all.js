@@ -191,13 +191,14 @@ function drawKeyboardLayout(canvas) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.save();
+  const highlight = (window && window.highlightKey) ? String(window.highlightKey).toLowerCase() : null;
   
   for (const [key, keyData] of Object.entries(keyboardLayout)) {
     const points = keyData.points.map(p => ({ x: p.x, y: p.y + KEY_Y_OFFSET }));
     if (!points || points.length < 3) continue;
-    
-    // キーボタンの背景（薄い色）
-    ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+    // ハイライトキーであれば赤く表示
+    const isHighlight = highlight && String(key).toLowerCase() === highlight;
+    ctx.fillStyle = isHighlight ? 'rgba(255,0,0,0.45)' : 'rgba(100, 100, 100, 0.3)';
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
     for (let i = 1; i < points.length; i++) {
@@ -206,16 +207,15 @@ function drawKeyboardLayout(canvas) {
     ctx.closePath();
     ctx.fill();
     
-    // キーボタンの枠線（黒で目立たせる）
-    ctx.strokeStyle = '#000000';
+    // キーボタンの枠線（ハイライト時は赤系）
+    ctx.strokeStyle = isHighlight ? 'rgba(200,0,0,0.95)' : '#000000';
     ctx.lineWidth = 2;
     ctx.stroke();
     
     // キーラベルを中心に表示
     const centerX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
     const centerY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
-    
-    ctx.fillStyle = '#cccccc';
+    ctx.fillStyle = isHighlight ? '#ffffff' : '#cccccc';
     ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -321,6 +321,7 @@ function checkKeyInput() {
 function updateInputDisplay() {
   const el = document.getElementById('inputBuffer');
   if (el) el.textContent = `入力: ${inputBuffer}`;
+  try{ refreshNextKeyHighlight(); }catch(e){}
 }
 
 function checkAnswer() {
@@ -335,6 +336,7 @@ function checkAnswer() {
     recordCorrectAnswer(inputBuffer);
     inputBuffer = '';
     updateInputDisplay();
+    try{ refreshNextKeyHighlight(); }catch(e){}
     nextWord();
   } else if (expectedRomaji.startsWith(inputBuffer)) {
     console.log('途中入力...');
@@ -343,6 +345,7 @@ function checkAnswer() {
     recordIncorrectAnswer(inputBuffer);
     inputBuffer = '';
     updateInputDisplay();
+    try{ refreshNextKeyHighlight(); }catch(e){}
   }
 }
 
@@ -480,7 +483,23 @@ function showCurrentWord(){
   if (typeof item === 'string') { kana = item; roma = hiraganaToRomaji(item); }
   else { kana = item.kana || ''; roma = item.romaji || (kana ? hiraganaToRomaji(kana) : ''); }
   kanaEl.textContent = kana;
-  if (romaEl) romaEl.textContent = roma;
+  // 文章の文字を赤色に着色
+  try{ kanaEl.style.color = 'red'; }catch(e){}
+  if (romaEl) { romaEl.textContent = roma; try{ romaEl.style.color = 'red'; }catch(e){} }
+  // 次に入力すべきキーの強調を更新
+  try{ refreshNextKeyHighlight(); }catch(e){}
+}
+
+/**
+ * 次に入力すべきキー（1文字）を算出し、グローバルに設定する
+ */
+function refreshNextKeyHighlight(){
+  const romaEl = document.getElementById('romajiLabel') || document.querySelector('.romajiLabel');
+  const expected = romaEl ? (romaEl.textContent||'') : '';
+  const buf = inputBuffer || '';
+  let next = null;
+  if (expected && buf.length < expected.length) next = expected.charAt(buf.length).toLowerCase();
+  try{ window.highlightKey = next; }catch(e){}
 }
 
 function nextWord(){
