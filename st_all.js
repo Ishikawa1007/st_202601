@@ -9,7 +9,7 @@ const HAND_CONNECTIONS = [
 ];
 
 
-const KEY_Y_OFFSET = 80; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
+const KEY_Y_OFFSET = 60; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
 const FINGERTIP_RADIUS = 5; // 指先点の半径（px）
 const FINGERTIP_INDICES = [8, 12, 16, 20]; // 入力対象の指先インデックス
 const INPUT_DEBOUNCE = 300; // ミリ秒
@@ -20,7 +20,7 @@ const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば
 // キーボードの形（多角形方式）
   const keyboardLayout = {
   //0行目　-
-  '-': { points: [ {x: ,y: }, {x:,y:}, {x:,y:}, {x:,y:} ]  },
+  '-': { points: [ {x:0 ,y:0 }, {x:0,y:0}, {x:0,y:0}, {x:0,y:0} ]  },
   // 1行目
   'Q': { points: [ {x:0,y:101}, {x:28,y:95}, {x:84 ,y:95 }, {x:58 ,y:105 } ]  },
   'W': { points: [ {x:58 ,y:105}, {x:84,y:95}, {x:143,y:96}, {x:121,y:106} ]  },
