@@ -482,11 +482,11 @@ function showCurrentWord(){
   let kana, roma;
   if (typeof item === 'string') { kana = item; roma = hiraganaToRomaji(item); }
   else { kana = item.kana || ''; roma = item.romaji || (kana ? hiraganaToRomaji(kana) : ''); }
+  // ひらがなは黒で表示（次文字の強調はローマ字側で行う）
   kanaEl.textContent = kana;
-  // 文章の文字を赤色に着色
-  try{ kanaEl.style.color = 'red'; }catch(e){}
-  if (romaEl) { romaEl.textContent = roma; try{ romaEl.style.color = 'red'; }catch(e){} }
-  // 次に入力すべきキーの強調を更新
+  try{ kanaEl.style.color = 'black'; }catch(e){}
+  if (romaEl) romaEl.textContent = roma;
+  // 次に入力すべきキーの強調を更新（ローマ字表示の次文字を赤に）
   try{ refreshNextKeyHighlight(); }catch(e){}
 }
 
@@ -500,6 +500,19 @@ function refreshNextKeyHighlight(){
   let next = null;
   if (expected && buf.length < expected.length) next = expected.charAt(buf.length).toLowerCase();
   try{ window.highlightKey = next; }catch(e){}
+  // ローマ字表示で次の文字のみ赤にする
+  try{
+    if (romaEl){
+      const chars = expected.split('');
+      const idx = Math.min(Math.max(0, buf.length), chars.length);
+      const out = chars.map((ch,i)=> i===idx ? `<span style="color:red">${escapeHtml(ch)}</span>` : escapeHtml(ch)).join('');
+      romaEl.innerHTML = out;
+    }
+  }catch(e){}
+}
+
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function nextWord(){
