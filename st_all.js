@@ -332,15 +332,8 @@ function updateInputDisplay() {
 }
 
 function checkAnswer() {
-  const isPage4Active = (page4 && page4.style.display !== 'none');
-  let romaEl;
-  
-  if (isPage4Active) {
-    // page4では wordLabel がローマ字を含んでいる
-    romaEl = document.getElementById('wordLabel');
-  } else {
-    romaEl = document.getElementById('romajiLabel');
-  }
+  // ローマ字は常にromajiLabelに表示されている
+  const romaEl = document.getElementById('romajiLabel');
   
   if (!romaEl) return;
   const expectedRomaji = romaEl.textContent.trim();
@@ -498,12 +491,15 @@ function showCurrentWord(){
   let kana, roma;
   if (typeof item === 'string') { kana = item; roma = hiraganaToRomaji(item); }
   else { kana = item.kana || ''; roma = item.romaji || (kana ? hiraganaToRomaji(kana) : ''); }
-  // page4ではローマ字を表示、ひらがなは非表示
+  // page4ではローマ字を上部に表示、ひらがなと対応
   const isPage4Active = (page4 && page4.style.display !== 'none');
   if (isPage4Active) {
-    kanaEl.textContent = roma;
+    kanaEl.textContent = kana;
     try{ kanaEl.style.color = 'black'; }catch(e){}
-    if (romaEl) romaEl.textContent = '';
+    if (romaEl) {
+      romaEl.textContent = roma;
+      try{ romaEl.style.color = '#666'; }catch(e){}
+    }
   } else {
     kanaEl.textContent = kana;
     try{ kanaEl.style.color = 'black'; }catch(e){}
@@ -519,10 +515,9 @@ function showCurrentWord(){
 function refreshNextKeyHighlight(){
   const kanaEl = document.getElementById('wordLabel') || document.querySelector('.wordLabel');
   const romaEl = document.getElementById('romajiLabel') || document.querySelector('.romajiLabel');
-  const isPage4Active = (page4 && page4.style.display !== 'none');
   
-  // page4ではkanaElにローマ字が表示されているため、そちらを参照
-  const displayEl = isPage4Active ? kanaEl : romaEl;
+  // ローマ字は常にromaElに表示されている
+  const displayEl = romaEl;
   const expected = displayEl ? (displayEl.textContent||'') : '';
   const buf = inputBuffer || '';
   let next = null;
