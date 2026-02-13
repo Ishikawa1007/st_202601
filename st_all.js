@@ -499,6 +499,8 @@ function showCurrentWord(){
     try{ kanaEl.style.color = 'black'; }catch(e){}
     if (romaEl) {
       romaEl.textContent = roma;
+      // 生のローマ字を保持（innerHTMLで上書きしても参照できるように）
+      try{ romaEl.dataset.rawRomaji = roma; }catch(e){}
       try{ romaEl.style.color = '#666'; }catch(e){}
     }
   } else {
@@ -519,7 +521,8 @@ function refreshNextKeyHighlight(){
   
   // ローマ字は常にromaElに表示されている
   const displayEl = romaEl;
-  const expected = displayEl ? (displayEl.textContent||'') : '';
+  // 優先して data-raw-romaji を使う（innerHTMLでspanが埋め込まれている場合の上書き回避）
+  const expected = displayEl ? ((displayEl.dataset && displayEl.dataset.rawRomaji) || displayEl.textContent || '') : '';
   const buf = inputBuffer || '';
   let next = null;
   if (expected && buf.length < expected.length) next = expected.charAt(buf.length).toLowerCase();
@@ -532,6 +535,8 @@ function refreshNextKeyHighlight(){
       const idx = Math.min(Math.max(0, buf.length), chars.length);
       const out = chars.map((ch,i)=> i===idx ? `<span style="color:red; font-weight:bold;">${escapeHtml(ch)}</span>` : escapeHtml(ch)).join('');
       displayEl.innerHTML = out;
+      // dataset.rawRomaji は元の生文字列を保持しておく
+      try{ displayEl.dataset.rawRomaji = expected; }catch(e){}
     }
   }catch(e){}
 }
@@ -829,6 +834,8 @@ function onHandsResults(results){
     try{ window.latestFingertips = detected; }catch(e){}
     try{ window.allFingertips = allFingertips; }catch(e){} // 両手対応
     
+    // キーボードハイライト情報を更新してからレイアウトを描画（次キー強調と同期）
+    try{ refreshNextKeyHighlight(); }catch(e){}
     // キーボードレイアウトを描画
     drawKeyboardLayout(canvas);
     
