@@ -350,9 +350,10 @@ function checkAnswer() {
   } else if (expectedRomaji.startsWith(inputBuffer)) {
     console.log('途中入力...');
   } else {
-    console.log('✗ 不正解!');
+    console.log('✗ 不正解! 最後の文字を削除');
     recordIncorrectAnswer(inputBuffer);
-    inputBuffer = '';
+    // 最後の誤った文字を削除（正解部分は保持）
+    inputBuffer = inputBuffer.slice(0, -1);
     updateInputDisplay();
     try{ refreshNextKeyHighlight(); }catch(e){}
   }
