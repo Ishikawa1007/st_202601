@@ -320,7 +320,14 @@ function checkKeyInput() {
 
 function updateInputDisplay() {
   const el = document.getElementById('inputBuffer');
-  if (el) el.textContent = `入力: ${inputBuffer}`;
+  if (el) {
+    let hiraganaText = '';
+    if (typeof wanakana !== 'undefined' && typeof wanakana.toHiragana === 'function') {
+      hiraganaText = wanakana.toHiragana(inputBuffer);
+    }
+    const displayText = hiraganaText ? `入力: ${inputBuffer}（${hiraganaText}）` : `入力: ${inputBuffer}`;
+    el.textContent = displayText;
+  }
   try{ refreshNextKeyHighlight(); }catch(e){}
 }
 
