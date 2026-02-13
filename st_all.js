@@ -325,7 +325,16 @@ function updateInputDisplay() {
 }
 
 function checkAnswer() {
-  const romaEl = document.getElementById('romajiLabel');
+  const isPage4Active = (page4 && page4.style.display !== 'none');
+  let romaEl;
+  
+  if (isPage4Active) {
+    // page4では wordLabel がローマ字を含んでいる
+    romaEl = document.getElementById('wordLabel');
+  } else {
+    romaEl = document.getElementById('romajiLabel');
+  }
+  
   if (!romaEl) return;
   const expectedRomaji = romaEl.textContent.trim();
   
@@ -482,10 +491,17 @@ function showCurrentWord(){
   let kana, roma;
   if (typeof item === 'string') { kana = item; roma = hiraganaToRomaji(item); }
   else { kana = item.kana || ''; roma = item.romaji || (kana ? hiraganaToRomaji(kana) : ''); }
-  // ひらがなは黒で表示（次文字の強調はローマ字側で行う）
-  kanaEl.textContent = kana;
-  try{ kanaEl.style.color = 'black'; }catch(e){}
-  if (romaEl) romaEl.textContent = roma;
+  // page4ではローマ字を表示、ひらがなは非表示
+  const isPage4Active = (page4 && page4.style.display !== 'none');
+  if (isPage4Active) {
+    kanaEl.textContent = roma;
+    try{ kanaEl.style.color = 'black'; }catch(e){}
+    if (romaEl) romaEl.textContent = '';
+  } else {
+    kanaEl.textContent = kana;
+    try{ kanaEl.style.color = 'black'; }catch(e){}
+    if (romaEl) romaEl.textContent = roma;
+  }
   // 次に入力すべきキーの強調を更新（ローマ字表示の次文字を赤に）
   try{ refreshNextKeyHighlight(); }catch(e){}
 }
@@ -494,19 +510,25 @@ function showCurrentWord(){
  * 次に入力すべきキー（1文字）を算出し、グローバルに設定する
  */
 function refreshNextKeyHighlight(){
+  const kanaEl = document.getElementById('wordLabel') || document.querySelector('.wordLabel');
   const romaEl = document.getElementById('romajiLabel') || document.querySelector('.romajiLabel');
-  const expected = romaEl ? (romaEl.textContent||'') : '';
+  const isPage4Active = (page4 && page4.style.display !== 'none');
+  
+  // page4ではkanaElにローマ字が表示されているため、そちらを参照
+  const displayEl = isPage4Active ? kanaEl : romaEl;
+  const expected = displayEl ? (displayEl.textContent||'') : '';
   const buf = inputBuffer || '';
   let next = null;
   if (expected && buf.length < expected.length) next = expected.charAt(buf.length).toLowerCase();
   try{ window.highlightKey = next; }catch(e){}
-  // ローマ字表示で次の文字のみ赤にする
+  
+  // 表示用要素で次の文字のみ赤にする
   try{
-    if (romaEl){
+    if (displayEl){
       const chars = expected.split('');
       const idx = Math.min(Math.max(0, buf.length), chars.length);
-      const out = chars.map((ch,i)=> i===idx ? `<span style="color:red">${escapeHtml(ch)}</span>` : escapeHtml(ch)).join('');
-      romaEl.innerHTML = out;
+      const out = chars.map((ch,i)=> i===idx ? `<span style="color:red; font-weight:bold;">${escapeHtml(ch)}</span>` : escapeHtml(ch)).join('');
+      displayEl.innerHTML = out;
     }
   }catch(e){}
 }
