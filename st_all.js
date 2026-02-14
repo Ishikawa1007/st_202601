@@ -447,7 +447,7 @@ function resetGameState() {
 // wanakana 利用判定 + フォールバック
 const useWanakana = typeof window !== 'undefined' && window.wanakana && typeof wanakana.toRomaji === 'function';
 function hiraganaToRomaji(input) {
-  if (useWanakana) return wanakana.toRomaji(input);
+  if (useWanakana) return wanakana.toRomaji(input, {upcaseKatakana: false});
   const map = {'あ':'a','い':'i','う':'u','え':'e','お':'o',
     'か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
     'が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go',
