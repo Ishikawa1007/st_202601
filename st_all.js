@@ -541,7 +541,10 @@ function showCurrentWord(){
   } else {
     kanaEl.textContent = kana;
     try{ kanaEl.style.color = 'black'; }catch(e){}
-    if (romaEl) romaEl.textContent = roma;
+    if (romaEl) {
+      romaEl.textContent = roma;
+      try{ romaEl.dataset.rawRomaji = roma; }catch(e){}
+    }
   }
   // 次に入力すべきキーの強調を更新（ローマ字表示の次文字を赤に）
   try{ refreshNextKeyHighlight(); }catch(e){}
