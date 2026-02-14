@@ -54,6 +54,22 @@ const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば
   '.': { points: [ {x:477 ,y:104 }, {x:466 ,y:97 }, {x:510 ,y:97 }, {x:528 ,y:106 } ]  },
   };
 
+// 各行ごとのターゲットZ（normalized座標）
+const ROW_TARGET_Z = {
+  0: -0.130,
+  1: -0.115,
+  2: -0.102,
+  3: -0.090
+};
+
+// キーごとの行番号マップ（小文字キーでマッピング）
+const KEY_ROW = {
+  '-': 0,
+  'q': 1,'w':1,'e':1,'r':1,'t':1,'y':1,'u':1,'i':1,'o':1,'p':1,
+  'a':2,'s':2,'d':2,'f':2,'g':2,'h':2,'j':2,'k':2,'l':2,
+  'z':3,'x':3,'c':3,'v':3,'b':3,'n':3,'m':3,',':3,'.':3
+};
+
 
 
 
@@ -307,12 +323,31 @@ function checkKeyInput() {
       // 多角形内判定
       if (isPointInPolygon(fingerX, fingerY, points)) {
         const normalizedKey = String(key).toLowerCase();
-        inputBuffer += normalizedKey;
-        lastInputTime = now;
-        updateInputDisplay();
-        console.log(`Key detected by hand ${fingertipInfo.hand} fingertip ${fingertipInfo.fingertip}: ${key} -> ${normalizedKey}, Buffer: ${inputBuffer}`);
-        checkAnswer();
-        return; // 1回のチェックあたり1入力のみ（最初にマッチした指のみ）
+        // fingertip.z は onHandsResults 側で lm.z * 100 として保存されているため
+        // 正規化された z を得るには 100 で割る
+        const fingerZnorm = (fingertip.z !== undefined && fingertip.z !== null) ? (fingertip.z / 100) : null;
+
+        // 最も近い行を決定
+        let nearestRow = null;
+        let nearestDiff = Infinity;
+        for (const r in ROW_TARGET_Z) {
+          const d = Math.abs((fingerZnorm !== null ? fingerZnorm : 0) - ROW_TARGET_Z[r]);
+          if (d < nearestDiff) { nearestDiff = d; nearestRow = Number(r); }
+        }
+        const keyRow = (KEY_ROW.hasOwnProperty(normalizedKey)) ? KEY_ROW[normalizedKey] : null;
+
+        if (keyRow !== null && nearestRow !== null && keyRow === nearestRow) {
+          // 行の Z 値に最も近く、かつ x,y が多角形内である -> 入力とみなす
+          inputBuffer += normalizedKey;
+          lastInputTime = now;
+          updateInputDisplay();
+          console.log(`Key detected by hand ${fingertipInfo.hand} fingertip ${fingertipInfo.fingertip}: ${key} -> ${normalizedKey}, Buffer: ${inputBuffer} (z=${fingerZnorm}, row=${keyRow})`);
+          checkAnswer();
+          return; // 1回のチェックあたり1入力のみ
+        } else {
+          // 行が一致しなければ入力しない（デバッグ出力）
+          console.log(`Z mismatch: fingertip z=${fingerZnorm} nearestRow=${nearestRow} keyRow=${keyRow} for key=${key}`);
+        }
       }
     }
   }
