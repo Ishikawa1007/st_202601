@@ -263,14 +263,40 @@ function highlightHoveredKey(canvas, fingertip) {
       const fingerZnorm = (fingertip.z !== undefined && fingertip.z !== null) ? (fingertip.z / 100) : null;
       const normalizedKey = String(key).toLowerCase();
       const keyRow = (KEY_ROW.hasOwnProperty(normalizedKey)) ? KEY_ROW[normalizedKey] : null;
-      let isFullMatch = false;
+
+      // Z差に基づく色分岐：diff = fingerZ - targetZ
+      // diff <= -Z_TOLERANCE -> 指が近すぎる（Zが小さい） -> 黄
+      // |diff| <= Z_TOLERANCE -> 丁度いい -> 緑
+      // diff >= Z_TOLERANCE -> 遠すぎる（Zが大きい） -> 青
+      let fillStyle = 'rgba(255, 200, 0, 0.4)';
+      let strokeStyle = 'rgba(255, 200, 0, 0.8)';
+      let labelColor = '#ffff00';
       if (fingerZnorm !== null && keyRow !== null && ROW_TARGET_Z.hasOwnProperty(keyRow)) {
-        const diff = Math.abs(fingerZnorm - ROW_TARGET_Z[keyRow]);
-        if (diff <= Z_TOLERANCE) isFullMatch = true;
+        const diff = fingerZnorm - ROW_TARGET_Z[keyRow];
+        if (Math.abs(diff) <= Z_TOLERANCE) {
+          // 丁度いい
+          fillStyle = 'rgba(0,200,0,0.45)';
+          strokeStyle = 'rgba(0,150,0,0.95)';
+          labelColor = '#006400';
+        } else if (diff < -Z_TOLERANCE) {
+          // Z が小さすぎる（指がカメラ側に近い）→黄
+          fillStyle = 'rgba(255, 200, 0, 0.4)';
+          strokeStyle = 'rgba(255, 200, 0, 0.8)';
+          labelColor = '#ffff00';
+        } else {
+          // diff > Z_TOLERANCE : Z が大きすぎる（指が遠い）→青
+          fillStyle = 'rgba(0,120,255,0.45)';
+          strokeStyle = 'rgba(0,80,200,0.95)';
+          labelColor = '#ffffff';
+        }
+      } else {
+        // Z 情報や行情報が無ければ黄で示す（既存の挙動に近づける）
+        fillStyle = 'rgba(255, 200, 0, 0.4)';
+        strokeStyle = 'rgba(255, 200, 0, 0.8)';
+        labelColor = '#ffff00';
       }
 
-      // ホバー中のキーをハイライト（Z一致なら緑、XYのみなら黄色）
-      ctx.fillStyle = isFullMatch ? 'rgba(0,200,0,0.45)' : 'rgba(255, 200, 0, 0.4)';
+      ctx.fillStyle = fillStyle;
       ctx.beginPath();
       ctx.moveTo(points[0].x, points[0].y);
       for (let i = 1; i < points.length; i++) {
@@ -279,7 +305,7 @@ function highlightHoveredKey(canvas, fingertip) {
       ctx.closePath();
       ctx.fill();
       
-      ctx.strokeStyle = isFullMatch ? 'rgba(0,150,0,0.95)' : 'rgba(255, 200, 0, 0.8)';
+      ctx.strokeStyle = strokeStyle;
       ctx.lineWidth = 2;
       ctx.stroke();
       // キー情報をポップアップ表示
@@ -290,7 +316,7 @@ function highlightHoveredKey(canvas, fingertip) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.fillRect(centerX - 20, labelY - 12, 40, 18);
       
-      ctx.fillStyle = isFullMatch ? '#ccffcc' : '#ffff00';
+      ctx.fillStyle = labelColor;
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
