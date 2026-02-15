@@ -13,6 +13,7 @@ const KEY_Y_OFFSET =  10; // キーY座標に追加するオフセット（px）
 const FINGERTIP_RADIUS = 5; // 指先点の半径（px）
 const FINGERTIP_INDICES = [8, 12, 16, 20]; // 入力対象の指先インデックス
 const INPUT_DEBOUNCE = 300; // ミリ秒
+const Z_TOLERANCE = 0.012; // 正規化Zの許容差（行ターゲットとの誤差がこれ以下でZ一致とみなす）
 
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
 const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば',4:'みじかい文',5:'ながい文'};
@@ -258,8 +259,18 @@ function highlightHoveredKey(canvas, fingertip) {
     
     // 多角形内判定
     if (isPointInPolygon(fingerX, fingerY, points)) {
-      // ホバー中のキーをハイライト
-      ctx.fillStyle = 'rgba(255, 200, 0, 0.4)';
+      // Z情報を正規化（onHandsResults では z を lm.z * 100 で保存している）
+      const fingerZnorm = (fingertip.z !== undefined && fingertip.z !== null) ? (fingertip.z / 100) : null;
+      const normalizedKey = String(key).toLowerCase();
+      const keyRow = (KEY_ROW.hasOwnProperty(normalizedKey)) ? KEY_ROW[normalizedKey] : null;
+      let isFullMatch = false;
+      if (fingerZnorm !== null && keyRow !== null && ROW_TARGET_Z.hasOwnProperty(keyRow)) {
+        const diff = Math.abs(fingerZnorm - ROW_TARGET_Z[keyRow]);
+        if (diff <= Z_TOLERANCE) isFullMatch = true;
+      }
+
+      // ホバー中のキーをハイライト（Z一致なら緑、XYのみなら黄色）
+      ctx.fillStyle = isFullMatch ? 'rgba(0,200,0,0.45)' : 'rgba(255, 200, 0, 0.4)';
       ctx.beginPath();
       ctx.moveTo(points[0].x, points[0].y);
       for (let i = 1; i < points.length; i++) {
@@ -268,7 +279,7 @@ function highlightHoveredKey(canvas, fingertip) {
       ctx.closePath();
       ctx.fill();
       
-      ctx.strokeStyle = 'rgba(255, 200, 0, 0.8)';
+      ctx.strokeStyle = isFullMatch ? 'rgba(0,150,0,0.95)' : 'rgba(255, 200, 0, 0.8)';
       ctx.lineWidth = 2;
       ctx.stroke();
       // キー情報をポップアップ表示
@@ -279,7 +290,7 @@ function highlightHoveredKey(canvas, fingertip) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.fillRect(centerX - 20, labelY - 12, 40, 18);
       
-      ctx.fillStyle = '#ffff00';
+      ctx.fillStyle = isFullMatch ? '#ccffcc' : '#ffff00';
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
