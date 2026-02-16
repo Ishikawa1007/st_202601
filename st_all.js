@@ -16,8 +16,7 @@ const INPUT_DEBOUNCE = 300; // ミリ秒
 
 // 速度判定関連の定数
 const FRAME_HISTORY_SIZE = 12; // 12フレーム前との比較
-const SPEED_THRESHOLD = 15; // 速度の閾値（5*sqrt(dx^2 + dy^2) >= この値で入力と判定）
-const SPEED_MULTIPLIER = 5; // 速度計算の乗数
+const SPEED_THRESHOLD = 20; // 速度の閾値（dy >= この値で入力と判定）
 
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
 const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば',4:'みじかい文',5:'ながい文'};
@@ -318,13 +317,13 @@ function updateFingertipHistory(handIdx, fingertipIdx, fingertipData) {
  * 指先の速度を計算（12フレーム前との比較）
  * @param {number} handIdx - 手のインデックス
  * @param {number} fingertipIdx - 指先インデックス
- * @returns {number} 速度値（5*sqrt(dx^2 + dy^2)）、履歴が不足している場合は0
+ * @returns {number} 速度値（dy: Y軸の移動量をそのまま使用）、履歴が不足している場合は0
  */
 function calculateFingertipSpeed(handIdx, fingertipIdx) {
   const id = `${handIdx}_${fingertipIdx}`;
   const history = fingertipHistory[id];
   
-  // 履歴が不足している場合は忙しい速度値を返す
+  // 履歴が不足している場合は0を返す
   if (!history || history.length < FRAME_HISTORY_SIZE) {
     return 0;
   }
@@ -334,11 +333,10 @@ function calculateFingertipSpeed(handIdx, fingertipIdx) {
   // 12フレーム前の座標（履歴の最初）
   const past = history[0];
   
-  const dx = current.x - past.x;
   const dy = current.y - past.y;
   
-  // 速度 = 5 * sqrt(dx^2 + dy^2)
-  const speed = SPEED_MULTIPLIER * Math.sqrt(dx * dx + dy * dy);
+  // 速度 = dy（Y軸の移動量をそのまま使う）
+  const speed = dy;
   
   return speed;
 }
