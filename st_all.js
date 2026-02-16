@@ -375,7 +375,12 @@ function checkKeyInput() {
 
         if (keyRow !== null && nearestRow !== null && keyRow === nearestRow) {
           // 行の Z 値に最も近く、かつ x,y が多角形内である -> 入力とみなす
-          inputBuffer += normalizedKey;
+          // '-'キーの場合は伸ばし棒「ー」を入力
+          if (normalizedKey === '-') {
+            inputBuffer += 'ー';
+          } else {
+            inputBuffer += normalizedKey;
+          }
           lastInputTime = now;
           updateInputDisplay();
           console.log(`Key detected by hand ${fingertipInfo.hand} fingertip ${fingertipInfo.fingertip}: ${key} -> ${normalizedKey}, Buffer: ${inputBuffer} (z=${fingerZnorm}, row=${keyRow})`);
@@ -449,8 +454,22 @@ function showResults() {
   const total = correctCount + incorrectCount;
   const correctPercent = total > 0 ? Math.round((correctCount / total) * 100) : 0;
   const incorrectPercent = 100 - correctPercent;
-  const score = correctCount * 10 - incorrectCount * 5;
-  
+  // 得点計算式
+  const l = total;
+  const c = correctCount;
+  const i = incorrectCount;
+  const t = tslider ? Number(tslider.value) * 60 : 60; // 秒
+  const v = (c > 0 && t > 0) ? c / t : 0;
+  const a = (c + i) > 0 ? c / (c + i) : 0;
+  let p = (l > 0 && v > 0 && a > 0) ? Math.sqrt(l) * Math.pow(v, 2) * Math.pow(a, 2) * 2 / 45 : 0;
+  p = Math.round(p);
+  // ランク判定
+  let rank = 'D';
+  if (p >= 120) rank = 'S';
+  else if (p >= 100) rank = 'A';
+  else if (p >= 70) rank = 'B';
+  else if (p >= 40) rank = 'C';
+  // 表示
   const pointEl = document.getElementById('point');
   const levelEl = document.getElementById('revel');
   const lengthEl = document.getElementById('length');
@@ -460,16 +479,20 @@ function showResults() {
   const nFalseEl = document.getElementById('n_false');
   const tPerEl = document.getElementById('t_per');
   const fPerEl = document.getElementById('f_per');
-  
-  if (pointEl) pointEl.textContent = Math.max(0, score);
-  if (levelEl) levelEl.textContent = lslider ? lslider.value : '1';
+  const rankEl = document.getElementById('rank');
+  if (pointEl) pointEl.textContent = Math.max(0, p);
+  if (levelEl) {
+    const level = lslider ? lslider.value : '1';
+    levelEl.textContent = `${level} — ${levelLabels[level]||''}`;
+  }
   if (lengthEl) lengthEl.textContent = total;
   if (timeEl) timeEl.textContent = tslider ? `${tslider.value}分` : '1分';
-  if (speedEl) speedEl.textContent = total > 0 ? Math.round(total / (tslider ? tslider.value : 1)) : 0;
+  if (speedEl) speedEl.textContent = t > 0 ? (c / t).toFixed(2) : 0;
   if (nTrueEl) nTrueEl.textContent = correctCount;
   if (nFalseEl) nFalseEl.textContent = incorrectCount;
   if (tPerEl) tPerEl.textContent = `${correctPercent}%`;
   if (fPerEl) fPerEl.textContent = `${incorrectPercent}%`;
+  if (rankEl) rankEl.textContent = rank;
 }
 
 function resetGameState() {
