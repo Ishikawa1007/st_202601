@@ -15,6 +15,10 @@ const FINGERTIP_INDICES = [8, 12, 16, 20]; // 入力対象の指先インデッ�
 const INPUT_DEBOUNCE = 300; // ミリ秒
 const Z_TOLERANCE = 0.012; // 正規化Zの許容差（行ターゲットとの誤差がこれ以下でZ一致とみなす）
 
+// 速度判定関連の定数
+const FRAME_HISTORY_SIZE = 12; // 12フレーム前との比較
+const SPEED_THRESHOLD = 20; // 速度の閾値（dy >= この値で入力と判定）
+
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
 const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば',4:'みじかい文',5:'ながい文'};
 
@@ -337,6 +341,71 @@ let lastInputTime = 0;
 let correctCount = 0;
 let incorrectCount = 0;
 
+// 座標履歴の管理（各指先の過去フレーム座標を保持）
+const fingertipHistory = {}; // { "hand_fingertip_id": [{ x, y, z }, ...] }
+
+/**
+ * 指先の座標履歴を更新
+ * @param {number} handIdx - 手のインデックス
+ * @param {number} fingertipIdx - 指先インデックス
+ * @param {object} fingertipData - 現在の指先座標データ { x, y, z, xPx, yPx, xDiv, yDiv }
+ */
+function updateFingertipHistory(handIdx, fingertipIdx, fingertipData) {
+  const id = `${handIdx}_${fingertipIdx}`;
+  
+  if (!fingertipHistory[id]) {
+    fingertipHistory[id] = [];
+  }
+  
+  // 正規化座標を履歴に追加 (xPx, yPx ではなく正規化座標 x, y を使用)
+  fingertipHistory[id].push({ x: fingertipData.x, y: fingertipData.y, z: fingertipData.z });
+  
+  // 履歴サイズを FRAME_HISTORY_SIZE に制限
+  if (fingertipHistory[id].length > FRAME_HISTORY_SIZE) {
+    fingertipHistory[id].shift();
+  }
+}
+
+/**
+ * 指先の速度を計算（12フレーム前との比較）
+ * @param {number} handIdx - 手のインデックス
+ * @param {number} fingertipIdx - 指先インデックス
+ * @returns {number} 速度値（dy: Y軸の移動量をそのまま使用）、履歴が不足している場合は0
+ */
+function calculateFingertipSpeed(handIdx, fingertipIdx) {
+  const id = `${handIdx}_${fingertipIdx}`;
+  const history = fingertipHistory[id];
+  
+  // 履歴が不足している場合は0を返す
+  if (!history || history.length < FRAME_HISTORY_SIZE) {
+    return 0;
+  }
+  
+  // 現在の座標（履歴の最後）
+  const current = history[history.length - 1];
+  // 12フレーム前の座標（履歴の最初）
+  const past = history[0];
+  
+  const dy = current.y - past.y;
+  
+  // 速度 = dy（Y軸の移動量をそのまま使う）
+  const speed = dy;
+  
+  return speed;
+}
+
+/**
+ * 指先の速度が閾値以上か判定
+ * @param {number} handIdx - 手のインデックス
+ * @param {number} fingertipIdx - 指先インデックス
+ * @returns {boolean} 速度が閾値以上の場合は true
+ */
+function isFingertipMovingFast(handIdx, fingertipIdx) {
+  const speed = calculateFingertipSpeed(handIdx, fingertipIdx);
+  return speed >= SPEED_THRESHOLD;
+}
+
+
 function checkKeyInput() {
   const now = Date.now();
   if (now - lastInputTime < INPUT_DEBOUNCE) return;
@@ -348,6 +417,12 @@ function checkKeyInput() {
   for (const fingertipInfo of allFingertips) {
     const fingertip = fingertipInfo.data;
     if (!fingertip) continue;
+
+    // 速度判定：閾値以上の速度が出ている指のみを入力対象にする
+    const speed = fingertipInfo.speed || 0;
+    const isMovingFast = speed >= SPEED_THRESHOLD;
+    
+    if (!isMovingFast) continue;
 
     const fingerX = fingertip.xPx;
     const fingerY = fingertip.yPx;
@@ -932,7 +1007,11 @@ function onHandsResults(results){
         
         const fingertipData = { x: lm.x, y: lm.y, z: lm.z * 100, xPx: xPx, yPx: yPx, xDiv: xDiv, yDiv: yDiv };
         detected[i] = fingertipData;
-        allFingertips.push({ hand: handIdx, fingertip: i, data: fingertipData });
+        
+        // 座標履歴を更新
+        updateFingertipHistory(handIdx, i, fingertipData);
+        
+        allFingertips.push({ hand: handIdx, fingertip: i, data: fingertipData, speed: calculateFingertipSpeed(handIdx, i) });
       });
     }
     
