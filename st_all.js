@@ -488,8 +488,8 @@ function checkAnswer() {
   const romaEl = document.getElementById('romajiLabel');
   
   if (!romaEl) return;
-  const expectedRomaji = romaEl.textContent.trim();
-  
+  // data-raw-romaji属性を優先して参照、なければtextContent
+  const expectedRomaji = (romaEl.dataset && romaEl.dataset.rawRomaji) ? romaEl.dataset.rawRomaji.trim() : romaEl.textContent.trim();
   if (!expectedRomaji) return;
   
   if (inputBuffer === expectedRomaji) {
