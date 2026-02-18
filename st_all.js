@@ -560,7 +560,10 @@ function showResults() {
     const level = lslider ? lslider.value : '1';
     levelEl.textContent = `${level} — ${levelLabels[level]||''}`;
   }
-  if (lengthEl) lengthEl.textContent = lslider ? lslider.value : '1';
+  if (lengthEl) {
+    const levelVal = lslider ? lslider.value : '1';
+    lengthEl.textContent = `${levelVal} — ${levelLabels[levelVal]||''}`;
+  }
   if (timeEl) timeEl.textContent = tslider ? `${tslider.value}分` : '1分';
   if (speedEl) speedEl.textContent = t > 0 ? (c / t).toFixed(2) : 0;
   if (nTrueEl) nTrueEl.textContent = correctCount;
