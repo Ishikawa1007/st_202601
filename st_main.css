@@ -205,8 +205,9 @@ html, body {
 
 /* page4: move the action button (stop/戻る) to top-left */
 #page4 .stopbutton {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 20;
+  position: absolute !important;
+  top: 10px !important;
+  left: 10px !important;
+  right: auto !important;
+  z-index: 9999 !important;
 }
