@@ -211,3 +211,18 @@ html, body {
   right: auto !important;
   z-index: 9999 !important;
 }
+
+/* Mobile-specific override: ensure stopbutton is at top-left on small screens */
+@media (max-width: 600px) {
+  #page4 { position: relative !important; }
+  #page4 .stopbutton {
+    position: absolute !important;
+    top: 10px !important;
+    left: 10px !important;
+    right: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    float: none !important;
+    z-index: 10000 !important;
+  }
+}
