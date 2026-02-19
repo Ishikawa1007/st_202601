@@ -1,9 +1,17 @@
-const CACHE_NAME = 'st-typing-v1';
+const CACHE_NAME = 'st-typing-v2';
 const urlsToCache = [
   './',
   './index.html',
   './st_all.js',
-  './st_main.css'
+  './st_main.css',
+  './camera/camera_utils.js',
+  './draw/drawing_utils.js',
+  './hands/hands.js',
+  './hands/hands.binarypb',
+  './hands/hand_landmark_lite.tflite',
+  './hands/hand_landmark_full.tflite',
+  'https://unpkg.com/wanakana@4.0.2/wanakana.min.js',
+  'https://cdn.jsdelivr.net/npm/eruda'
 ];
 
 // インストール時にキャッシュにファイルを追加
@@ -36,6 +44,11 @@ self.addEventListener('activate', event => {
 
 // フェッチ時にキャッシュから返す
 self.addEventListener('fetch', event => {
+  // GET リクエストのみ処理
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -59,12 +72,15 @@ self.addEventListener('fetch', event => {
       })
       .catch(() => {
         // ネットワークエラー時のフォールバック
-        return new Response('オフラインです', {
-          status: 503,
-          statusText: 'Service Unavailable',
-          headers: new Headers({
-            'Content-Type': 'text/plain'
-          })
+        // 既存のキャッシュから返すか、エラーレスポンスを返す
+        return caches.match('./index.html').then(response => {
+          return response || new Response('オフラインです', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({
+              'Content-Type': 'text/plain; charset=utf-8'
+            })
+          });
         });
       })
   );
