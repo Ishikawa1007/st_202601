@@ -5,6 +5,7 @@
     <meta http-equiv="Cache-Control" content="no-cache">
     <meta charset="UTF-8">
     <title>スマホタイピング</title>
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="st_main.css">
     <!-- wanakana -->
     <script src="https://unpkg.com/wanakana@4.0.2/wanakana.min.js"></script>
@@ -149,6 +150,14 @@
                 console.error('Failed to load Mediapipe after timeout');
             }
         });
+    </script>
+    <script>
+        // Service Worker登録
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(registration => console.log('Service Worker登録成功:', registration))
+                .catch(error => console.error('Service Worker登録失敗:', error));
+        }
     </script>
 </body>
 </html>
