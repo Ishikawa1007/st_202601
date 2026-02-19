@@ -184,7 +184,7 @@ html, body {
   display: inline-block;
   width: 640px;
   height: 240px;
-  max-width: 100%;
+  max-width: 80%;
   image-rendering: optimizeQuality;
 }
 
