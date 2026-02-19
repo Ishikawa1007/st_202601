@@ -963,7 +963,6 @@ function onHandsResults(results){
   // ページに応じた要素を取得
   const isPage4Active = (page4 && page4.style.display !== 'none');
   let canvasId = isPage4Active ? 'mp_output_canvas_p4' : 'mp_output_canvas_p3';
-  let statusId = isPage4Active ? 'mp_status_p4' : 'mp_status_p3';
   
   const canvas = document.getElementById(canvasId);
   const status = document.getElementById(statusId);
@@ -1063,7 +1062,6 @@ function startMediapipeHands(){
   if (typeof Hands === 'undefined' || typeof Camera === 'undefined' || typeof drawConnectors === 'undefined') {
     console.warn('startMediapipeHands: Mediapipe libraries not loaded yet. Retrying...');
     console.warn('  Hands:', typeof Hands, 'Camera:', typeof Camera, 'drawConnectors:', typeof drawConnectors);
-    const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
     if (status) status.textContent = 'ライブラリ読み込み中...';
     setTimeout(() => startMediapipeHands(), 200);
     return;
@@ -1074,12 +1072,10 @@ function startMediapipeHands(){
   if (isPage4Active) {
     video = document.getElementById('mp_input_video_p4');
     canvas = document.getElementById('mp_output_canvas_p4');
-    status = document.getElementById('mp_status_p4');
     console.log('Using page4 elements: video=' + (video ? 'found' : 'NOT FOUND') + ', canvas=' + (canvas ? 'found' : 'NOT FOUND'));
   } else if (isPage3Active) {
     video = document.getElementById('mp_input_video_p3');
     canvas = document.getElementById('mp_output_canvas_p3');
-    status = document.getElementById('mp_status_p3');
     console.log('Using page3 elements: video=' + (video ? 'found' : 'NOT FOUND') + ', canvas=' + (canvas ? 'found' : 'NOT FOUND'));
   } else {
     console.error('startMediapipeHands: Neither page3 nor page4 is active');
@@ -1185,8 +1181,6 @@ function startMediapipeHands(){
         
         console.log('✓ mpHands initialized successfully');
         handsInitialized = true;
-        if (status) status.textContent = 'カメラ接続成功。手を検出中...';
-        
         // Test: Force send one frame to verify it works
         console.log('Hands init: Ready to receive frames');
         
@@ -1213,14 +1207,6 @@ function startMediapipeHands(){
               ctx.restore();
             } else {
               ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
-            }
-            const st = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
-            if (st) {
-              if (mpHands) {
-                st.textContent = 'video再生中（手検出待機中...）';
-              } else {
-                st.textContent = 'Hands 初期化中...';
-              }
             }
           }
         } catch(e) {
@@ -1251,12 +1237,10 @@ function stopMediapipeHands(){
   
   if (isPage4Active) {
     const canvas = document.getElementById('mp_output_canvas_p4');
-    const status = document.getElementById('mp_status_p4');
     if (canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
     if (status) status.textContent = 'カメラ停止';
   } else if (isPage3Active) {
     const canvas = document.getElementById('mp_output_canvas_p3');
-    const status = document.getElementById('mp_status_p3');
     if (canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
     if (status) status.textContent = 'カメラ停止';
   }
