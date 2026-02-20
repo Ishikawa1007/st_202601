@@ -1149,7 +1149,6 @@ function startMediapipeHands(){
   });
   
   mpCamera.start().then(()=>{
-    if (status) status.textContent = 'カメラ起動成功';
     console.log('mpCamera.start() succeeded');
     
     let handsInitTimeout = setTimeout(() => {
@@ -1185,7 +1184,6 @@ function startMediapipeHands(){
         
       } catch (err) {
         console.error('✗ Failed to initialize Hands:', err, err.stack);
-        if (status) status.textContent = 'Hands 初期化失敗: ' + err.message;
         handsInitialized = false;
       }
     }, 300);
