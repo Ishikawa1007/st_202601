@@ -412,6 +412,7 @@ function checkKeyInput() {
 
   // 複数の手の全指先を一覧で取得（両手対応）
   const allFingertips = window.allFingertips || [];
+  console.debug(`[checkKeyInput] allFingertips.length=${allFingertips.length}, SPEED_THRESHOLD=${SPEED_THRESHOLD}`);
   
   // 全ての指をチェック
   for (const fingertipInfo of allFingertips) {
@@ -421,6 +422,8 @@ function checkKeyInput() {
     // 速度判定：閾値以上の速度が出ている指のみを入力対象にする
     const speed = fingertipInfo.speed || 0;
     const isMovingFast = speed >= SPEED_THRESHOLD;
+    
+    console.debug(`  [Hand ${fingertipInfo.hand} Fingertip ${fingertipInfo.fingertip}] speed=${speed}, isMovingFast=${isMovingFast}`);
     
     if (!isMovingFast) continue;
 
@@ -434,6 +437,7 @@ function checkKeyInput() {
 
       // 多角形内判定
       if (isPointInPolygon(fingerX, fingerY, points)) {
+        console.debug(`    [Polygon match] key=${key}, fingerPos=(${fingerX.toFixed(1)}, ${fingerY.toFixed(1)})`);
         const normalizedKey = String(key).toLowerCase();
         // fingertip.z は onHandsResults 側で lm.z * 100 として保存されているため
         // 正規化された z を得るには 100 で割る
@@ -447,6 +451,8 @@ function checkKeyInput() {
           if (d < nearestDiff) { nearestDiff = d; nearestRow = Number(r); }
         }
         const keyRow = (KEY_ROW.hasOwnProperty(normalizedKey)) ? KEY_ROW[normalizedKey] : null;
+        
+        console.debug(`      [Z check] fingerZnorm=${fingerZnorm}, nearestRow=${nearestRow}, keyRow=${keyRow}, diff=${nearestDiff.toFixed(4)}`);
 
         if (keyRow !== null && nearestRow !== null && keyRow === nearestRow) {
           // 行の Z 値に最も近く、かつ x,y が多角形内である -> 入力とみなす
