@@ -2,7 +2,7 @@
   "name": "スマホタイピング",
   "short_name": "スマホタイピング",
   "description": "スマートフォンでできるタイピングゲーム",
-  "start_url": "/index.html",
+  "start_url": "/st_202601/index.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "landscape-primary",
