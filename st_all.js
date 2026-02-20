@@ -607,6 +607,8 @@ function hiraganaToRomaji(input) {
     'しゃ':'sha','しゅ':'shu','しょ':'sho',
     'じゃ':'ja','じゅ':'ju','じょ':'jo',
     'ちゃ':'tya','ちゅ':'tyu','ちょ':'tyo',
+    'つぁ':'tsa','つぃ':'tsi','つぇ':'tse','つぉ':'tso',
+    'てぃ':'thi','てゅ':'thu','てょ':'tho',
     'でぃ':'dhi','でゅ':'dhu','でょ':'dho',
     'にゃ':'nya','にゅ':'nyu','にょ':'nyo',
     'ひゃ':'hya','ひゅ':'hyu','ひょ':'hyo',
