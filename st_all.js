@@ -965,7 +965,6 @@ function onHandsResults(results){
   let canvasId = isPage4Active ? 'mp_output_canvas_p4' : 'mp_output_canvas_p3';
   
   const canvas = document.getElementById(canvasId);
-  const status = document.getElementById(statusId);
   if (!canvas) {
     console.error('onHandsResults: Canvas not found', canvasId);
     return;
