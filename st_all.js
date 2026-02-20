@@ -614,6 +614,7 @@ function hiraganaToRomaji(input) {
     'ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo',
     'みゃ':'mya','みゅ':'myu','みょ':'myo',
     'りゃ':'rya','りゅ':'ryu','りょ':'ryo',
+    'うぁ':'wha','うぃ':'wi','うぇ':'we','うぉ':'who',
   };
   let out = '';
   input = input || '';
