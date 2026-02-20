@@ -11,7 +11,6 @@ const urlsToCache = [
   './hands/hand_landmark_lite.tflite',
   './hands/hand_landmark_full.tflite',
   'https://unpkg.com/wanakana@4.0.2/wanakana.min.js',
-  'https://cdn.jsdelivr.net/npm/eruda'
 ];
 
 // インストール時にキャッシュにファイルを追加
