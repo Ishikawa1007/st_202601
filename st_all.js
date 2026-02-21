@@ -338,6 +338,7 @@ function highlightHoveredKey(canvas, fingertip) {
 
 let inputBuffer = '';
 let lastInputTime = 0;
+let lastBufferLength = 0; // 前回の入力バッファ長（1文字ごとのカウント用）
 let correctCount = 0;
 let incorrectCount = 0;
 
@@ -442,7 +443,6 @@ function checkKeyInput() {
         // fingertip.z は onHandsResults 側で lm.z * 100 として保存されているため
         // 正規化された z を得るには 100 で割る
         const fingerZnorm = (fingertip.z !== undefined && fingertip.z !== null) ? (fingertip.z / 100) : null;
-
         // 最も近い行を決定
         let nearestRow = null;
         let nearestDiff = Infinity;
@@ -498,22 +498,38 @@ function checkAnswer() {
   const expectedRomaji = (romaEl.dataset && romaEl.dataset.rawRomaji) ? romaEl.dataset.rawRomaji.trim() : romaEl.textContent.trim();
   if (!expectedRomaji) return;
   
+  // 新しく1文字追加された場合のカウント判定
+  if (inputBuffer.length > lastBufferLength) {
+    const newCharIndex = inputBuffer.length - 1;
+    const newChar = inputBuffer[newCharIndex];
+    const expectedChar = expectedRomaji[newCharIndex];
+    
+    // 新しく入力された文字が期待される文字と一致しているか確認
+    if (newChar === expectedChar) {
+      recordCorrectAnswer(newChar);
+      console.log(`✓ 正解! 文字: ${newChar}`);
+    } else {
+      recordIncorrectAnswer(newChar);
+      console.log(`✗ 不正解! 入力: ${newChar}, 期待: ${expectedChar}`);
+      // 最後の誤った文字を削除（正解部分は保持）
+      inputBuffer = inputBuffer.slice(0, -1);
+      updateInputDisplay();
+    }
+  }
+  
+  lastBufferLength = inputBuffer.length;
+  
+  // 単語が完全に一致したら次の単語へ
   if (inputBuffer === expectedRomaji) {
-    console.log('✓ 正解!');
-    recordCorrectAnswer(inputBuffer);
+    console.log('✓ 単語完成!');
     inputBuffer = '';
+    lastBufferLength = 0;
     updateInputDisplay();
     try{ refreshNextKeyHighlight(); }catch(e){}
     nextWord();
-  } else if (expectedRomaji.startsWith(inputBuffer)) {
-    console.log('途中入力...');
-  } else {
-    console.log('✗ 不正解! 最後の文字を削除');
-    recordIncorrectAnswer(inputBuffer);
-    // 最後の誤った文字を削除（正解部分は保持）
-    inputBuffer = inputBuffer.slice(0, -1);
-    updateInputDisplay();
-    try{ refreshNextKeyHighlight(); }catch(e){}
+  } else if (!expectedRomaji.startsWith(inputBuffer)) {
+    // 入力がもはや期待値の接頭辞ではなくなった場合（すでに処理済み）
+    console.log('途中入力が離脱...');
   }
 }
 
