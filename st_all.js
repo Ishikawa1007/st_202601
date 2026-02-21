@@ -67,6 +67,57 @@ const ROW_TARGET_Z = {
   3: -0.090
 };
 
+// モバイル用：画面上にログを表示するデバッグコンソール（F12が使えないとき用）
+(function(){
+  const MAX_LINES = 200;
+  const ID = 'mobileDebugConsoleOverlay';
+
+  function ensureConsole() {
+    if (document.getElementById(ID)) return document.getElementById(ID);
+    const el = document.createElement('div');
+    el.id = ID;
+    el.style.position = 'fixed';
+    el.style.left = '0';
+    el.style.right = '0';
+    el.style.bottom = '0';
+    el.style.maxHeight = '30vh';
+    el.style.overflow = 'auto';
+    el.style.background = 'rgba(0,0,0,0.7)';
+    el.style.color = '#0f0';
+    el.style.fontFamily = 'monospace';
+    el.style.fontSize = '12px';
+    el.style.zIndex = '2147483647';
+    el.style.padding = '6px';
+    el.style.boxSizing = 'border-box';
+    el.style.pointerEvents = 'none';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function formatArg(a){
+    try{ if (typeof a === 'object') return JSON.stringify(a); }catch(e){}
+    return String(a);
+  }
+
+  function appendDebug(msg){
+    const el = ensureConsole();
+    const line = document.createElement('div');
+    line.textContent = msg;
+    el.appendChild(line);
+    while(el.childNodes.length > MAX_LINES) el.removeChild(el.firstChild);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // console.log / console.debug をラップして画面にも出力
+  const _log = console.log.bind(console);
+  const _debug = console.debug ? console.debug.bind(console) : _log;
+  console.log = function(...args){ _log(...args); try{ appendDebug(args.map(formatArg).join(' ')); }catch(e){} };
+  console.debug = function(...args){ _debug(...args); try{ appendDebug(args.map(formatArg).join(' ')); }catch(e){} };
+
+  // 必要なら外部からも使えるようにする
+  window.mobileDebug = { append: appendDebug };
+})();
+
 // キーごとの行番号マップ（小文字キーでマッピング）
 const KEY_ROW = {
   '-': 0,
