@@ -161,11 +161,22 @@
     </script>
     <script>
         // Service Worker登録
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(registration => console.log('Service Worker登録成功:', registration))
-                .catch(error => console.error('Service Worker登録失敗:', error));
-        }
+        (function(){
+            // PWA (standalone) 表示のときのみ Service Worker を登録する
+            function isPWA() {
+                return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                    || (window.navigator.standalone === true)
+                    || (document.referrer && document.referrer.startsWith('android-app://'));
+            }
+
+            if ('serviceWorker' in navigator && isPWA()) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => console.log('Service Worker登録成功:', registration))
+                    .catch(error => console.error('Service Worker登録失敗:', error));
+            } else {
+                console.log('Service Worker登録スキップ（PWAモードでありません）');
+            }
+        })();
     </script>
 </body>
 </html>
