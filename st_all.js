@@ -17,7 +17,7 @@ const Z_TOLERANCE = 0.012; // 正規化Zの許容差（行ターゲットとの�
 
 // 速度判定関連の定数
 const FRAME_HISTORY_SIZE = 12; // 12フレーム前との比較
-const SPEED_THRESHOLD = 5; // 速度の閾値（dy >= この値で入力と判定）
+const SPEED_THRESHOLD = 0.1; // 速度の閾値（dy >= この値で入力と判定）
 
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
 const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば',4:'みじかい文',5:'ながい文'};
