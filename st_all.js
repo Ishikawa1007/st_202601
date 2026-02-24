@@ -13,7 +13,7 @@ const KEY_Y_OFFSET =  10; // キーY座標に追加するオフセット（px）
 const FINGERTIP_RADIUS = 5; // 指先点の半径（px）
 const FINGERTIP_INDICES = [8, 12, 16, 20]; // 入力対象の指先インデックス
 const INPUT_DEBOUNCE = 300; // ミリ秒
-const Z_TOLERANCE = 0.012; // 正規化Zの許容差（行ターゲットとの誤差がこれ以下でZ一致とみなす）
+const Z_TOLERANCE =-0.02; // 正規化Zの許容差（行ターゲットとの誤差がこれ以下でZ一致とみなす）
 
 // 速度判定関連の定数
 const FRAME_HISTORY_SIZE = 12; // 12フレーム前との比較
