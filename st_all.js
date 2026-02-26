@@ -9,7 +9,7 @@ const HAND_CONNECTIONS = [
 ];
 
 
-const KEY_Y_OFFSET =  10; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
+const KEY_Y_OFFSET =  0; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
 const FINGERTIP_RADIUS = 5; // 指先点の半径（px）
 const FINGERTIP_INDICES = [8, 12, 16, 20]; // 入力対象の指先インデックス
 const INPUT_DEBOUNCE = 300; // ミリ秒
@@ -61,10 +61,10 @@ const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば
 
 // 各行ごとのターゲットZ（normalized座標）
 const ROW_TARGET_Z = {
-  0: -0.300,
-  1: -0.260,
-  2: -0.220,
-  3: -0.170
+  0: -0.320,
+  1: -0.280,
+  2: -0.240,
+  3: -0.190
 };
 
 // キーごとの行番号マップ（小文字キーでマッピング）
