@@ -9,7 +9,7 @@ const HAND_CONNECTIONS = [
 ];
 
 
-const KEY_Y_OFFSET =  30; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
+const KEY_Y_OFFSET =  50; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
 const FINGERTIP_RADIUS = 5; // 指先点の半径（px）
 const FINGERTIP_INDICES = [8, 12, 16, 20]; // 入力対象の指先インデックス
 const INPUT_DEBOUNCE = 300; // ミリ秒
