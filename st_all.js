@@ -17,7 +17,7 @@ const Z_TOLERANCE = 0.012; // 正規化Zの許容差（行ターゲットとの�
 
 // 速度判定関連の定数
 const FRAME_HISTORY_SIZE = 12; // 12フレーム前との比較
-const SPEED_THRESHOLD = 12; // 速度の閾値（ピクセル/12フレーム。12px = 240px高さの5%下移動）
+const SPEED_THRESHOLD = 12; // 速度の閾値（ピクセル単位での移動量） ここは可変
 
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
 const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば',4:'みじかい文',5:'ながい文'};
@@ -66,6 +66,7 @@ const ROW_TARGET_Z = {
   2: -0.240,
   3: -0.190
 };
+// 大幅な改善が必要
 
 // キーごとの行番号マップ（小文字キーでマッピング）
 const KEY_ROW = {
