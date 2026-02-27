@@ -1335,16 +1335,57 @@ function stopPage3KeyboardLoop() {
   }
 }
 
-// ページ4用のキーボード描画ループを開始（既に削除）
+// ページ4用のキーボード描画ループを開始
 function startPage4KeyboardLoop() {
-  // Page4ではキーボード描画ループは不要。手検出時のみ描画する
-  console.log('startPage4KeyboardLoop: Not used for page4');
+  if (page4KeyboardLoopId) {
+    console.log('Page4 keyboard loop already running');
+    return;
+  }
+  
+  const canvas = document.getElementById('mp_output_canvas_p4');
+  const video = document.getElementById('mp_input_video_p4');
+  if (!canvas || !video) {
+    console.warn('startPage4KeyboardLoop: Canvas or video not found');
+    return;
+  }
+  
+  console.log('startPage4KeyboardLoop: Starting keyboard display loop');
+  
+  page4KeyboardLoopId = setInterval(() => {
+    if (!canvas || !video) return;
+    
+    try {
+      const ctx = canvas.getContext('2d');
+      
+      // ビデオを背景として描画
+      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+        const actualW = video.videoWidth;
+        const actualH = video.videoHeight;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (window.mpUseMirror) {
+          ctx.save();
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
+          ctx.restore();
+        } else {
+          ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
+        }
+      }
+      
+      // キーボードレイアウトを描画
+      drawKeyboardLayout(canvas);
+    } catch (err) {
+      console.error('Page4 keyboard loop error:', err);
+    }
+  }, 50); // 20fps
 }
 
-// ページ4用のキーボード描画ループを停止（既に削除）
+// ページ4用のキーボード描画ループを停止
 function stopPage4KeyboardLoop() {
   if (page4KeyboardLoopId) {
-    console.log('stopPage4KeyboardLoop: Clearing any existing loop');
+    console.log('stopPage4KeyboardLoop: Stopping keyboard display loop');
     clearInterval(page4KeyboardLoopId);
     page4KeyboardLoopId = null;
   }
