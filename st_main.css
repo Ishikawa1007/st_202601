@@ -184,6 +184,45 @@ html, body {
   display: inline-block;
   width: 640px;
   height: 240px;
-  max-width: 100%;
+  max-width: 80%;
   image-rendering: optimizeQuality;
+}
+
+/* Page-specific button placements */
+/* page3: back (left) and OK (right) */
+#page3 .backbutton_b {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 20;
+}
+#page3 .pracbutton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
+}
+
+/* page4: move the action button (stop/戻る) to top-left */
+#page4 .stopbutton {
+  position: absolute !important;
+  top: 10px !important;
+  left: 10px !important;
+  right: auto !important;
+  z-index: 9999 !important;
+}
+
+/* Mobile-specific override: ensure stopbutton is at top-left on small screens */
+@media (max-width: 600px) {
+  #page4 { position: relative !important; }
+  #page4 .stopbutton {
+    position: absolute !important;
+    top: 10px !important;
+    left: 10px !important;
+    right: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    float: none !important;
+    z-index: 10000 !important;
+  }
 }

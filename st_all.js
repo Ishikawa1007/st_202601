@@ -9,54 +9,73 @@ const HAND_CONNECTIONS = [
 ];
 
 
-const KEY_Y_OFFSET = 60; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
+const KEY_Y_OFFSET =  50; // キーY座標に追加するオフセット（px） 目的:指の先端に合わせるため
 const FINGERTIP_RADIUS = 5; // 指先点の半径（px）
 const FINGERTIP_INDICES = [8, 12, 16, 20]; // 入力対象の指先インデックス
 const INPUT_DEBOUNCE = 300; // ミリ秒
+const Z_TOLERANCE = 0.20; // 正規化Zの許容差（行ターゲットとの誤差がこれ以下でZ一致とみなす）
 
 // 速度判定関連の定数
 const FRAME_HISTORY_SIZE = 12; // 12フレーム前との比較
-const SPEED_THRESHOLD = 20; // 速度の閾値（dy >= この値で入力と判定）
+const SPEED_THRESHOLD = 1; // 速度の閾値（ピクセル単位での移動量） ここは可変
 
 const timeLabels = {1:'1分',2:'2分',3:'3分',4:'4分',5:'5分'};
 const levelLabels = {1:'1もじ',2:'みじかいことば',3:'ながいことば',4:'みじかい文',5:'ながい文'};
 
+// 各行ごとのターゲットZ（normalized座標）
+const ROW_TARGET_Z = {
+  0: -0.320,
+  1: -0.290,
+  2: -0.240,
+  3: -0.190
+};
+// 大幅な改善が必要
+
 // キーボードの形（多角形方式）
   const keyboardLayout = {
   //0行目　-
-  '-': { points: [ {x:537 ,y:137 }, {x:555,y:127}, {x:613,y:128}, {x:640,y:138} ]  },
+  '-': { points: [ {x:537,y:137}, {x:555,y:127}, {x:613,y:128}, {x:640,y:138} ]  },
   // 1行目
-  'Q': { points: [ {x:0,y:117}, {x:32,y:108}, {x:81 ,y:109 }, {x:56 ,y:119 } ]  },
-  'W': { points: [ {x:56 ,y:119}, {x:81,y:109}, {x:133,y:110}, {x:112,y:119} ]  },
-  'e': { points: [ {x:112 ,y:119 }, {x:133 ,y:110 }, {x:183 ,y:111 }, {x:169 ,y:120 } ]  },
-  'r': { points: [ {x:169 ,y:120 }, {x:183 ,y:111 }, {x:238 ,y:112 }, {x:228 ,y:121 } ]  },
-  't': { points: [ {x:228 ,y:121 }, {x:238 ,y:112 }, {x:290 ,y:112 }, {x:286 ,y:122 } ]  },
-  'y': { points: [ {x:286 ,y:122 }, {x:290 ,y:112 }, {x:343 ,y:113 }, {x:346 ,y:124 } ]  },
-  'u': { points: [ {x:346 ,y:124 }, {x:343,y:113 }, {x:396 ,y:115 }, {x:403 ,y:124 } ]  },
-  'i': { points: [ {x:403 ,y:124 }, {x:396 ,y:115 }, {x:450 ,y:116 }, {x:462 ,y:124 } ]  },
-  'o': { points: [ {x:462 ,y:124 }, {x:450 ,y:116 }, {x:508 ,y:118 }, {x:525 ,y:127 } ]  },
-  'p': { points: [ {x:508 ,y:118 }, { x:525 ,y:127 }, {x:585 ,y:127 }, {x:560 ,y:118 } ]  },
+  'Q': { points: [ {x:0  ,y:117}, {x:32 ,y:108}, {x:81 ,y:109}, {x:56 ,y:119} ]  },
+  'W': { points: [ {x:56 ,y:119}, {x:81 ,y:109}, {x:133,y:110}, {x:112,y:119} ]  },
+  'e': { points: [ {x:112,y:119}, {x:133,y:110}, {x:183,y:111}, {x:169,y:120} ]  },
+  'r': { points: [ {x:169,y:120}, {x:183,y:111}, {x:238,y:112}, {x:228,y:121} ]  },
+  't': { points: [ {x:228,y:121}, {x:238,y:112}, {x:290,y:112}, {x:286,y:122} ]  },
+  'y': { points: [ {x:286,y:122}, {x:290,y:112}, {x:343,y:113}, {x:346,y:124} ]  },
+  'u': { points: [ {x:346,y:124}, {x:343,y:113}, {x:396,y:115}, {x:403,y:124} ]  },
+  'i': { points: [ {x:403,y:124}, {x:396,y:115}, {x:450,y:116}, {x:462,y:124} ]  },
+  'o': { points: [ {x:462,y:124}, {x:450,y:116}, {x:508,y:118}, {x:525,y:127} ]  },
+  'p': { points: [ {x:508,y:118}, {x:525,y:127}, {x:585,y:127}, {x:560,y:118} ]  },
   // 2行目
-  'a': { points: [ {x:47 ,y:108 }, {x:72 ,y:101 }, {x:118 ,y:103 }, {x:98 ,y:110 } ]  },
-  's': { points: [ {x:98 ,y:110 }, {x:118 ,y:103 }, {x:165 ,y:103 } , {x:150 ,y:110 }]  },
-  'd': { points: [ {x:150 ,y:110 }, {x:165 ,y:103 }, {x:213 ,y:103 }, {x:202 ,y:112 } ]  },
-  'f': { points: [ {x:202 ,y:112 }, {x:213 ,y:103 }, {x:260 ,y:103 }, {x:251 ,y:113 } ]  },
-  'g': { points: [ {x:251 ,y:113 }, {x:260 ,y:103 }, {x:304 ,y:104 }, {x:303 ,y:112 } ]  },
-  'h': { points: [ {x:303 ,y:112 }, {x:304 ,y:104 }, {x:354 ,y:105 }, {x:355 ,y:113 } ]  },
-  'j': { points: [ {x:355 ,y:113 }, {x:354 ,y:105 }, {x:402 ,y:104 }, {x:408 ,y:115 } ]  },
-  'k': { points: [ {x:408 ,y:115 }, {x:402 ,y:104 }, {x:450 ,y:104 }, {x:460 ,y:117 } ]  },
-  'l': { points: [ {x:460 ,y:117 }, {x:450 ,y:104 }, {x:497 ,y:105 }, {x:514 ,y:118 } ]  },
+  'a': { points: [ {x:47 ,y:108}, {x:72 ,y:101}, {x:118,y:103}, {x:98 ,y:110} ]  },
+  's': { points: [ {x:98 ,y:110}, {x:118,y:103}, {x:165,y:103}, {x:150,y:110} ]  },
+  'd': { points: [ {x:150,y:110}, {x:165,y:103}, {x:213,y:103}, {x:202,y:112} ]  },
+  'f': { points: [ {x:202,y:112}, {x:213,y:103}, {x:260,y:103}, {x:251,y:113} ]  },
+  'g': { points: [ {x:251,y:113}, {x:260,y:103}, {x:304,y:104}, {x:303,y:112} ]  },
+  'h': { points: [ {x:303,y:112}, {x:304,y:104}, {x:354,y:105}, {x:355,y:113} ]  },
+  'j': { points: [ {x:355,y:113}, {x:354,y:105}, {x:402,y:104}, {x:408,y:115} ]  },
+  'k': { points: [ {x:408,y:115}, {x:402,y:104}, {x:450,y:104}, {x:460,y:117} ]  },
+  'l': { points: [ {x:460,y:117}, {x:450,y:104}, {x:497,y:105}, {x:514,y:118} ]  },
   // 3行目
-  'z': { points: [ {x:97 ,y:102 }, {x:116 ,y:95 }, {x:158 ,y:96 }, {x:143 ,y:103 } ]  },
-  'x': { points: [ {x:143 ,y:103 }, {x:158 ,y:96 },  {x:201 ,y:95 },{x:189 ,y:104 }, ]  },
-  'c': { points: [ {x:189 ,y:104 }, {x:201 ,y:95 }, {x:245 ,y:95 }, {x:238 ,y:103 } ]  },
-  'v': { points: [ {x:238 ,y:103 }, {x:245 ,y:95 }, {x:288 ,y:95 }, {x:284 ,y:104 } ]  },
-  'b': { points: [ {x:284 ,y:104 }, {x:288 ,y:95 }, {x:331 ,y:94 }, {x:332 ,y:105} ]  },
-  'n': { points: [ {x:332 ,y:105 }, {x:331 ,y:94 }, {x:375 ,y:94 }, {x:379 ,y:105 } ]  },
-  'm': { points: [ {x:379 ,y:105 }, {x:375 ,y:94 }, {x:420 ,y:95 }, {x:428 ,y:105 } ]  },
-  ',': { points: [ {x:428 ,y:105 }, {x:420 ,y:95 }, {x:466 ,y:97 }, {x:477 ,y:104 } ]  },
-  '.': { points: [ {x:477 ,y:104 }, {x:466 ,y:97 }, {x:510 ,y:97 }, {x:528 ,y:106 } ]  },
+  'z': { points: [ {x:97 ,y:102}, {x:116,y:95 }, {x:158,y:96 }, {x:143,y:103} ]  },
+  'x': { points: [ {x:143,y:103}, {x:158,y:96 }, {x:201,y:95 }, {x:189,y:104} ]  },
+  'c': { points: [ {x:189,y:104}, {x:201,y:95 }, {x:245,y:95 }, {x:238,y:103} ]  },
+  'v': { points: [ {x:238,y:103}, {x:245,y:95 }, {x:288,y:95 }, {x:284,y:104} ]  },
+  'b': { points: [ {x:284,y:104}, {x:288,y:95 }, {x:331,y:94 }, {x:332,y:105} ]  },
+  'n': { points: [ {x:332,y:105}, {x:331,y:94 }, {x:375,y:94 }, {x:379,y:105} ]  },
+  'm': { points: [ {x:379,y:105}, {x:375,y:94 }, {x:420,y:95 }, {x:428,y:105} ]  },
+  ',': { points: [ {x:428,y:105}, {x:420,y:95 }, {x:466,y:97 }, {x:477,y:104} ]  },
+  '.': { points: [ {x:477,y:104}, {x:466,y:97 }, {x:510,y:97 }, {x:528,y:106} ]  },
   };
+
+
+// キーごとの行番号マップ（小文字キーでマッピング）
+const KEY_ROW = {
+  '-': 0,
+  'q': 1,'w':1,'e':1,'r':1,'t':1,'y':1,'u':1,'i':1,'o':1,'p':1,
+  'a':2,'s':2,'d':2,'f':2,'g':2,'h':2,'j':2,'k':2,'l':2,
+  'z':3,'x':3,'c':3,'v':3,'b':3,'n':3,'m':3,',':3,'.':3
+};
 
 
 
@@ -246,8 +265,44 @@ function highlightHoveredKey(canvas, fingertip) {
     
     // 多角形内判定
     if (isPointInPolygon(fingerX, fingerY, points)) {
-      // ホバー中のキーをハイライト
-      ctx.fillStyle = 'rgba(255, 200, 0, 0.4)';
+      // Z情報を正規化（onHandsResults では z を lm.z * 100 で保存している）
+      const fingerZnorm = (fingertip.z !== undefined && fingertip.z !== null) ? (fingertip.z / 100) : null;
+      const normalizedKey = String(key).toLowerCase();
+      const keyRow = (KEY_ROW.hasOwnProperty(normalizedKey)) ? KEY_ROW[normalizedKey] : null;
+
+      // Z差に基づく色分岐：diff = fingerZ - targetZ
+      // diff <= -Z_TOLERANCE -> 指が近すぎる（Zが小さい） -> 黄
+      // |diff| <= Z_TOLERANCE -> 丁度いい -> 緑
+      // diff >= Z_TOLERANCE -> 遠すぎる（Zが大きい） -> 青
+      let fillStyle = 'rgba(255, 200, 0, 0.4)';
+      let strokeStyle = 'rgba(255, 200, 0, 0.8)';
+      let labelColor = '#ffff00';
+      if (fingerZnorm !== null && keyRow !== null && ROW_TARGET_Z.hasOwnProperty(keyRow)) {
+        const diff = fingerZnorm - ROW_TARGET_Z[keyRow];
+        if (Math.abs(diff) <= Z_TOLERANCE) {
+          // 丁度いい
+          fillStyle = 'rgba(0,200,0,0.45)';
+          strokeStyle = 'rgba(0,150,0,0.95)';
+          labelColor = '#006400';
+        } else if (diff < -Z_TOLERANCE) {
+          // Z が小さすぎる（指がカメラ側に近い）→黄
+          fillStyle = 'rgba(255, 200, 0, 0.4)';
+          strokeStyle = 'rgba(255, 200, 0, 0.8)';
+          labelColor = '#ffff00';
+        } else {
+          // diff > Z_TOLERANCE : Z が大きすぎる（指が遠い）→青
+          fillStyle = 'rgba(0,120,255,0.45)';
+          strokeStyle = 'rgba(0,80,200,0.95)';
+          labelColor = '#ffffff';
+        }
+      } else {
+        // Z 情報や行情報が無ければ黄で示す（既存の挙動に近づける）
+        fillStyle = 'rgba(255, 200, 0, 0.4)';
+        strokeStyle = 'rgba(255, 200, 0, 0.8)';
+        labelColor = '#ffff00';
+      }
+
+      ctx.fillStyle = fillStyle;
       ctx.beginPath();
       ctx.moveTo(points[0].x, points[0].y);
       for (let i = 1; i < points.length; i++) {
@@ -256,7 +311,7 @@ function highlightHoveredKey(canvas, fingertip) {
       ctx.closePath();
       ctx.fill();
       
-      ctx.strokeStyle = 'rgba(255, 200, 0, 0.8)';
+      ctx.strokeStyle = strokeStyle;
       ctx.lineWidth = 2;
       ctx.stroke();
       // キー情報をポップアップ表示
@@ -267,7 +322,7 @@ function highlightHoveredKey(canvas, fingertip) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.fillRect(centerX - 20, labelY - 12, 40, 18);
       
-      ctx.fillStyle = '#ffff00';
+      ctx.fillStyle = labelColor;
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -285,6 +340,7 @@ function highlightHoveredKey(canvas, fingertip) {
 
 let inputBuffer = '';
 let lastInputTime = 0;
+let lastBufferLength = 0; // 前回の入力バッファ長（1文字ごとのカウント用）
 let correctCount = 0;
 let incorrectCount = 0;
 
@@ -304,8 +360,8 @@ function updateFingertipHistory(handIdx, fingertipIdx, fingertipData) {
     fingertipHistory[id] = [];
   }
   
-  // 正規化座標を履歴に追加 (xPx, yPx ではなく正規化座標 x, y を使用)
-  fingertipHistory[id].push({ x: fingertipData.x, y: fingertipData.y, z: fingertipData.z });
+  // ピクセル座標を履歴に追加 (xPx, yPx を使用。単位: px)
+  fingertipHistory[id].push({ xPx: fingertipData.xPx, yPx: fingertipData.yPx, z: fingertipData.z });
   
   // 履歴サイズを FRAME_HISTORY_SIZE に制限
   if (fingertipHistory[id].length > FRAME_HISTORY_SIZE) {
@@ -317,7 +373,7 @@ function updateFingertipHistory(handIdx, fingertipIdx, fingertipData) {
  * 指先の速度を計算（12フレーム前との比較）
  * @param {number} handIdx - 手のインデックス
  * @param {number} fingertipIdx - 指先インデックス
- * @returns {number} 速度値（dy: Y軸の移動量をそのまま使用）、履歴が不足している場合は0
+ * @returns {number} 速度値（dyPx: Y軸のピクセル移動量）、履歴が不足している場合は0
  */
 function calculateFingertipSpeed(handIdx, fingertipIdx) {
   const id = `${handIdx}_${fingertipIdx}`;
@@ -333,10 +389,11 @@ function calculateFingertipSpeed(handIdx, fingertipIdx) {
   // 12フレーム前の座標（履歴の最初）
   const past = history[0];
   
-  const dy = current.y - past.y;
+  // ピクセル単位での移動量（単位: px）
+  const dyPx = current.yPx - past.yPx;
   
-  // 速度 = dy（Y軸の移動量をそのまま使う）
-  const speed = dy;
+  // 速度 = dyPx（ピクセル単位）
+  const speed = dyPx;
   
   return speed;
 }
@@ -359,6 +416,7 @@ function checkKeyInput() {
 
   // 複数の手の全指先を一覧で取得（両手対応）
   const allFingertips = window.allFingertips || [];
+  console.debug(`[checkKeyInput] allFingertips.length=${allFingertips.length}, SPEED_THRESHOLD=${SPEED_THRESHOLD}`);
   
   // 全ての指をチェック
   for (const fingertipInfo of allFingertips) {
@@ -368,6 +426,8 @@ function checkKeyInput() {
     // 速度判定：閾値以上の速度が出ている指のみを入力対象にする
     const speed = fingertipInfo.speed || 0;
     const isMovingFast = speed >= SPEED_THRESHOLD;
+    
+    console.debug(`  [Hand ${fingertipInfo.hand} Fingertip ${fingertipInfo.fingertip}] speed=${speed}, isMovingFast=${isMovingFast}`);
     
     if (!isMovingFast) continue;
 
@@ -381,13 +441,39 @@ function checkKeyInput() {
 
       // 多角形内判定
       if (isPointInPolygon(fingerX, fingerY, points)) {
+        console.debug(`    [Polygon match] key=${key}, fingerPos=(${fingerX.toFixed(1)}, ${fingerY.toFixed(1)})`);
         const normalizedKey = String(key).toLowerCase();
-        inputBuffer += normalizedKey;
-        lastInputTime = now;
-        updateInputDisplay();
-        console.log(`Key detected by hand ${fingertipInfo.hand} fingertip ${fingertipInfo.fingertip}: ${key} -> ${normalizedKey}, Speed: ${speed.toFixed(2)}, Buffer: ${inputBuffer}`);
-        checkAnswer();
-        return; // 1回のチェックあたり1入力のみ（最初にマッチした指のみ）
+        // fingertip.z は onHandsResults 側で lm.z * 100 として保存されているため
+        // 正規化された z を得るには 100 で割る
+        const fingerZnorm = (fingertip.z !== undefined && fingertip.z !== null) ? (fingertip.z / 100) : null;
+        // 最も近い行を決定
+        let nearestRow = null;
+        let nearestDiff = Infinity;
+        for (const r in ROW_TARGET_Z) {
+          const d = Math.abs((fingerZnorm !== null ? fingerZnorm : 0) - ROW_TARGET_Z[r]);
+          if (d < nearestDiff) { nearestDiff = d; nearestRow = Number(r); }
+        }
+        const keyRow = (KEY_ROW.hasOwnProperty(normalizedKey)) ? KEY_ROW[normalizedKey] : null;
+        
+        console.debug(`      [Z check] fingerZnorm=${fingerZnorm}, nearestRow=${nearestRow}, keyRow=${keyRow}, diff=${nearestDiff.toFixed(4)}`);
+
+        if (keyRow !== null && nearestRow !== null && keyRow === nearestRow) {
+          // 行の Z 値に最も近く、かつ x,y が多角形内である -> 入力とみなす
+          // '-'キーの場合は伸ばし棒「ー」を入力
+          if (normalizedKey === '-') {
+            inputBuffer += 'ー';
+          } else {
+            inputBuffer += normalizedKey;
+          }
+          lastInputTime = now;
+          updateInputDisplay();
+          console.log(`Key detected by hand ${fingertipInfo.hand} fingertip ${fingertipInfo.fingertip}: ${key} -> ${normalizedKey}, Buffer: ${inputBuffer} (z=${fingerZnorm}, row=${keyRow})`);
+          checkAnswer();
+          return; // 1回のチェックあたり1入力のみ
+        } else {
+          // 行が一致しなければ入力しない（デバッグ出力）
+          console.log(`Z mismatch: fingertip z=${fingerZnorm} nearestRow=${nearestRow} keyRow=${keyRow} for key=${key}`);
+        }
       }
     }
   }
@@ -411,26 +497,42 @@ function checkAnswer() {
   const romaEl = document.getElementById('romajiLabel');
   
   if (!romaEl) return;
-  const expectedRomaji = romaEl.textContent.trim();
-  
+  // data-raw-romaji属性を優先して参照、なければtextContent
+  const expectedRomaji = (romaEl.dataset && romaEl.dataset.rawRomaji) ? romaEl.dataset.rawRomaji.trim() : romaEl.textContent.trim();
   if (!expectedRomaji) return;
   
+  // 新しく1文字追加された場合のカウント判定
+  if (inputBuffer.length > lastBufferLength) {
+    const newCharIndex = inputBuffer.length - 1;
+    const newChar = inputBuffer[newCharIndex];
+    const expectedChar = expectedRomaji[newCharIndex];
+    
+    // 新しく入力された文字が期待される文字と一致しているか確認
+    if (newChar === expectedChar) {
+      recordCorrectAnswer(newChar);
+      console.log(`✓ 正解! 文字: ${newChar}`);
+    } else {
+      recordIncorrectAnswer(newChar);
+      console.log(`✗ 不正解! 入力: ${newChar}, 期待: ${expectedChar}`);
+      // 最後の誤った文字を削除（正解部分は保持）
+      inputBuffer = inputBuffer.slice(0, -1);
+      updateInputDisplay();
+    }
+  }
+  
+  lastBufferLength = inputBuffer.length;
+  
+  // 単語が完全に一致したら次の単語へ
   if (inputBuffer === expectedRomaji) {
-    console.log('✓ 正解!');
-    recordCorrectAnswer(inputBuffer);
+    console.log('✓ 単語完成!');
     inputBuffer = '';
+    lastBufferLength = 0;
     updateInputDisplay();
     try{ refreshNextKeyHighlight(); }catch(e){}
     nextWord();
-  } else if (expectedRomaji.startsWith(inputBuffer)) {
-    console.log('途中入力...');
-  } else {
-    console.log('✗ 不正解! 最後の文字を削除');
-    recordIncorrectAnswer(inputBuffer);
-    // 最後の誤った文字を削除（正解部分は保持）
-    inputBuffer = inputBuffer.slice(0, -1);
-    updateInputDisplay();
-    try{ refreshNextKeyHighlight(); }catch(e){}
+  } else if (!expectedRomaji.startsWith(inputBuffer)) {
+    // 入力がもはや期待値の接頭辞ではなくなった場合（すでに処理済み）
+    console.log('途中入力が離脱...');
   }
 }
 
@@ -452,8 +554,22 @@ function showResults() {
   const total = correctCount + incorrectCount;
   const correctPercent = total > 0 ? Math.round((correctCount / total) * 100) : 0;
   const incorrectPercent = 100 - correctPercent;
-  const score = correctCount * 10 - incorrectCount * 5;
-  
+  // 得点計算式
+  const l = total;
+  const c = correctCount;
+  const i = incorrectCount;
+  const t = tslider ? Number(tslider.value) * 60 : 60; // 秒
+  const v = (c > 0 && t > 0) ? c / t : 0;
+  const a = (c + i) > 0 ? c / (c + i) : 0;
+  let p = (l > 0 && v > 0 && a > 0) ? Math.sqrt(l) * Math.pow(v, 2) * Math.pow(a, 2) * 2 / 45 : 0;
+  p = Math.round(p);
+  // ランク判定
+  let rank = 'D';
+  if (p >= 120) rank = 'S';
+  else if (p >= 100) rank = 'A';
+  else if (p >= 70) rank = 'B';
+  else if (p >= 40) rank = 'C';
+  // 表示
   const pointEl = document.getElementById('point');
   const levelEl = document.getElementById('revel');
   const lengthEl = document.getElementById('length');
@@ -463,16 +579,23 @@ function showResults() {
   const nFalseEl = document.getElementById('n_false');
   const tPerEl = document.getElementById('t_per');
   const fPerEl = document.getElementById('f_per');
-  
-  if (pointEl) pointEl.textContent = Math.max(0, score);
-  if (levelEl) levelEl.textContent = lslider ? lslider.value : '1';
-  if (lengthEl) lengthEl.textContent = total;
+  const rankEl = document.getElementById('rank');
+  if (pointEl) pointEl.textContent = Math.max(0, p);
+  if (levelEl) {
+    const level = lslider ? lslider.value : '1';
+    levelEl.textContent = `${level} — ${levelLabels[level]||''}`;
+  }
+  if (lengthEl) {
+    const levelVal = lslider ? lslider.value : '1';
+    lengthEl.textContent = `${levelVal} — ${levelLabels[levelVal]||''}`;
+  }
   if (timeEl) timeEl.textContent = tslider ? `${tslider.value}分` : '1分';
-  if (speedEl) speedEl.textContent = total > 0 ? Math.round(total / (tslider ? tslider.value : 1)) : 0;
+  if (speedEl) speedEl.textContent = t > 0 ? (c / t).toFixed(2) : 0;
   if (nTrueEl) nTrueEl.textContent = correctCount;
   if (nFalseEl) nFalseEl.textContent = incorrectCount;
   if (tPerEl) tPerEl.textContent = `${correctPercent}%`;
   if (fPerEl) fPerEl.textContent = `${incorrectPercent}%`;
+  if (rankEl) rankEl.textContent = rank;
 }
 
 function resetGameState() {
@@ -487,14 +610,14 @@ function resetGameState() {
 // wanakana 利用判定 + フォールバック
 const useWanakana = typeof window !== 'undefined' && window.wanakana && typeof wanakana.toRomaji === 'function';
 function hiraganaToRomaji(input) {
-  if (useWanakana) return wanakana.toRomaji(input);
+  if (useWanakana) return wanakana.toRomaji(input, {upcaseKatakana: false});
   const map = {'あ':'a','い':'i','う':'u','え':'e','お':'o',
     'か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
     'が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go',
-    'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so',
-    'ざ':'za','じ':'ji','ず':'zu','ぜ':'ze','ぞ':'zo',
-    'た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to',
-    'だ':'da','ぢ':'ji','づ':'zu','で':'de','ど':'do',
+    'さ':'sa','し':'si','す':'su','せ':'se','そ':'so',
+    'ざ':'za','じ':'zi','ず':'zu','ぜ':'ze','ぞ':'zo',
+    'た':'ta','ち':'ti','つ':'tu','て':'te','と':'to',
+    'だ':'da','ぢ':'di','づ':'du','で':'de','ど':'do',
     'な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no',
     'は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho',
     'ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo',
@@ -502,13 +625,16 @@ function hiraganaToRomaji(input) {
     'ま':'ma','み':'mi','む':'mu','め':'me','も':'mo',
     'や':'ya','ゆ':'yu','よ':'yo',
     'ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro',
-    'わ':'wa','を':'o','ん':'n',};
+    'わ':'wa','を':'o','ん':'nn',};
   const combos = {
     'きゃ':'kya','きゅ':'kyu','きょ':'kyo',
     'ぎゃ':'gya','ぎゅ':'gyu','ぎょ':'gyo',
     'しゃ':'sha','しゅ':'shu','しょ':'sho',
     'じゃ':'ja','じゅ':'ju','じょ':'jo',
-    'ちゃ':'cha','ちゅ':'chu','ちょ':'cho',
+    'ちゃ':'tya','ちゅ':'tyu','ちょ':'tyo',
+    'つぁ':'tsa','つぃ':'tsi','つぇ':'tse','つぉ':'tso',
+    'てぃ':'thi','てゅ':'thu','てょ':'tho',
+    'でぃ':'dhi','でゅ':'dhu','でょ':'dho',
     'にゃ':'nya','にゅ':'nyu','にょ':'nyo',
     'ひゃ':'hya','ひゅ':'hyu','ひょ':'hyo',
     'ふぁ':'fa','ふぃ':'fi','ふゅ':'fyu','ふぇ':'fe','ふぉ':'fo',
@@ -516,6 +642,7 @@ function hiraganaToRomaji(input) {
     'ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo',
     'みゃ':'mya','みゅ':'myu','みょ':'myo',
     'りゃ':'rya','りゅ':'ryu','りょ':'ryo',
+    'うぁ':'wha','うぃ':'wi','うぇ':'we','うぉ':'who',
   };
   let out = '';
   input = input || '';
@@ -541,8 +668,8 @@ function getWordsForLevel(level) {
   const lists = {
     1: ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'],
     2: ['ねずみ','うし','とら','うさぎ','りゅう','へび','うま','ひつじ','さる','とり','いぬ','いのしし','ねこ','おおかみ','ぶた','きつね','たぬき','ぱんだ','くま','きりん','かめ','ぞう','おうむ','しまうま','こあら','しか','りす','もぐら','ひよこ','ふくろう','にわとり','かえる','やもり','うずら','とかげ','さめ','たこ','いか','さかな','ふぐ','さば','さけ','くらげ','あじ','えび','たい','うなぎ','かに','いるか','くじら','りんご','なし','ばなな','めろん','ぶどう','くるみ','かき','すいか','くり','もも','いちご','れもん','まんごー','すだち','きうい','きゃべつ','もやし','れたす','はくさい','にんじん','とまと','だいこん','かぶ','きのこ','なす','ぴーまん','ごーや','ぱぷりか','しめじ','たまねぎ','くるま','ばいく','でんしゃ','ふね','ばす','め','はな','くち','みみ','あたま','むね','うで','かた','くび','こし','おなか','て','ゆび','あし','くるぶし'],
-    3: ['カレーライス','バターロール','カレーパン','マーガリン','おみそしる','ハンバーガー','チキンカツ','フライドポテト','オムライス','スパゲッティ','ミートソース','サンドイッチ','ポテトサラダ','シーザーサラダ','ポタージュ','コーンスープ','コーヒーゼリー','プリンアラモード','チョコレート','アイスクリーム','たんじょうび','クリスマス','おしょうがつ','ハロウィン','こどものひ','せいじんのひ','けんこうしんだん','うんどうかい','けっこんしき','にゅうがくしき','そつぎょうしき','でんわばんごう','メールアドレス','インターネット','スマートフォン','コンピュータ','テレビゲーム','ソーシャルメディア','オンラインショッピング','デジタルカメラ','ビデオカメラ','バスケットボール','テニスラケット','サッカーボール','ゴールポスト','ゴルフクラブ','スイミングプール','ランニングシューズ','サーフボード','スケートボード','スノーボード'],
-    4: ['いぬがあるいている。','ねこがねている 。','あめがふってきた。','きょうはいいてんき。','ごはんをたこう。','えんぴつでかこう。','みんなであそぶ。','くつをはいてでる。','すいかがあまい。','ともだちとわらう。','ほんをよむ。','ボールをなげる。','サッカーをしてあそぶ。','やまにのぼる。','うんどうかいにでる。','しあいでまける。','あさのゆうがなめざめ。','ごはんをたくさんたべる。','そらにくもがある。','はなをつみにいく。','かぜがふいている。','つきがでてきた。','でんしゃがはしる。','かさをひろげよう。','りんごをたべたい。','うみでおよいだ。','ことりがなく。','やまにのぼろう。','がっこうをやすむ。','さつまいもをほる。','さかながおよいでいる。','あかいいちごをさがす。','くるまがはしっている。','ひこうきがとんでいる。','おにぎりをたべた。','かみをきってみた。','いすにすわろう。','でんきをつけよう。','ふうせんがうかんでいる。','かばんをもっていく。','あめがふっている。','ゆきがふっている。','きょうかしょをあける。','たいようがてっている。','くもがうごいている。','そらがあおい。','つきがみえる。','ほしがひかっている。','かぜがやんでいる。','あさがきている。','そらにとりがとんでいる。','はながさいている。','つきがかがやいている。','たいようがのぼっている。','おはしをもつ。','いけにさかながいる。','でんしゃがはしっている。','じてんしゃにのる。','おはなみにいく。','ふねがうみにうかんでいる。','りんごをたべる。','みかんをたべる。','ぶどうをたべる。','なしをたべる。','ももをたべる。','すいかをたべる。','いちごをたべる。','ばななをたべる。','さくらんぼをたべる。','かきをたべる。','いぬとあそんでいる。','ねことあそんでいる。','とりがなく。','うさぎがはねている。','ぞうがあるいている。','きりんがみている。','さるがのぼっている。','くまがあるいている。','かめがあるいている。','いんこがなく。','えんぴつでかいてある。','けしごむでなおす。','ほんをよんでいる。','ノートにかいている。','じをならっている。','すうじをかぞえている。','えをかいている。','うたをうたっている。','ピアノをひいた。','たいこをたたいている。','こうえんにいく。','やまにのぼる。','うみにいく。','かわであそぶ。','みちをあるく。','いえにかえる。','がっこうにいく。','きょうしつにすわる。','じゅぎょうをうける。','せんせいにはなす。'],
+    3: ['かれーらいす','ばたーろーる','かれーぱん','まーがりん','おみそしる','はんばーがー','ちきんかつ','ふらいどぽてと','おむらいす','すぱげってぃ','みーとそーす','さんどいっち','ぽてとさらだ','しーざーさらだ','ぽたーじゅ','こーんすーぷ','こーひーぜりー','ぷりんあらもーど','ちょこれーと','あいすくりーむ','たんじょうび','くりすます','おしょうがつ','はろうぃん','こどものひ','せいじんのひ','けんこうしんだん','うんどうかい','けっこんしき','にゅうがくしき','そつぎょうしき','でんわばんごう','めーるあどれす','いんたーねっと','すまーとふぉん','こんぴゅーた','てれびげーむ','そーしゃるめでぃあ','おんらいんしょっぴんぐ','でじたるかめら','びでおかめら','ばすけっとぼーる','てにすらけっと','さっかーぼーる','ごーるぽすと','ごるふくらぶ','すいみんぐぷーる','らんにんぐしゅーず','さーふぼーど','すけーとぼーど','すのーぼーど'],
+    4: ['いぬがあるいている。','ねこがねている 。','あめがふってきた。','きょうはいいてんき。','ごはんをたこう。','えんぴつでかこう。','みんなであそぶ。','くつをはいてでる。','すいかがあまい。','ともだちとわらう。','ほんをよむ。','ぼーるをなげる。','さっかーをしてあそぶ。','やまにのぼる。','うんどうかいにでる。','しあいでまける。','あさのゆうがなめざめ。','ごはんをたくさんたべる。','そらにくもがある。','はなをつみにいく。','かぜがふいている。','つきがでてきた。','でんしゃがはしる。','かさをひろげよう。','りんごをたべたい。','うみでおよいだ。','ことりがなく。','やまにのぼろう。','がっこうをやすむ。','さつまいもをほる。','さかながおよいでいる。','あかいいちごをさがす。','くるまがはしっている。','ひこうきがとんでいる。','おにぎりをたべた。','かみをきってみた。','いすにすわろう。','でんきをつけよう。','ふうせんがうかんでいる。','かばんをもっていく。','あめがふっている。','ゆきがふっている。','きょうかしょをあける。','たいようがてっている。','くもがうごいている。','そらがあおい。','つきがみえる。','ほしがひかっている。','かぜがやんでいる。','あさがきている。','そらにとりがとんでいる。','はながさいている。','つきがかがやいている。','たいようがのぼっている。','おはしをもつ。','いけにさかながいる。','でんしゃがはしっている。','じてんしゃにのる。','おはなみにいく。','ふねがうみにうかんでいる。','りんごをたべる。','みかんをたべる。','ぶどうをたべる。','なしをたべる。','ももをたべる。','すいかをたべる。','いちごをたべる。','ばななをたべる。','さくらんぼをたべる。','かきをたべる。','いぬとあそんでいる。','ねことあそんでいる。','とりがなく。','うさぎがはねている。','ぞうがあるいている。','きりんがみている。','さるがのぼっている。','くまがあるいている。','かめがあるいている。','いんこがなく。','えんぴつでかいてある。','けしごむでなおす。','ほんをよんでいる。','のーとにかいている。','じをならっている。','すうじをかぞえている。','えをかいている。','うたをうたっている。','ぴあのをひいた。','たいこをたたいている。','こうえんにいく。','やまにのぼる。','うみにいく。','かわであそぶ。','みちをあるく。','いえにかえる。','がっこうにいく。','きょうしつにすわる。','じゅぎょうをうける。','せんせいにはなす。'],
     5: ['むずかしいぶんしょうをよむれんしゅうです','いろいろなことをくわしくせつめいする']
   };
   return lists[level] || lists[1];
@@ -588,7 +715,10 @@ function showCurrentWord(){
   } else {
     kanaEl.textContent = kana;
     try{ kanaEl.style.color = 'black'; }catch(e){}
-    if (romaEl) romaEl.textContent = roma;
+    if (romaEl) {
+      romaEl.textContent = roma;
+      try{ romaEl.dataset.rawRomaji = roma; }catch(e){}
+    }
   }
   // 次に入力すべきキーの強調を更新（ローマ字表示の次文字を赤に）
   try{ refreshNextKeyHighlight(); }catch(e){}
@@ -704,6 +834,7 @@ if (prepButton) {
     if (page3) { 
       page3.style.display='flex'; 
       startMediapipeHands(); 
+      startPage3KeyboardLoop();
     } 
   }); 
 }
@@ -714,7 +845,8 @@ if (backButton_b) {
     console.log('backButton_b clicked'); 
     if (page3) { 
       page3.style.display='none'; 
-      stopMediapipeHands(); 
+      stopMediapipeHands();
+      stopPage3KeyboardLoop();
     } 
     if (page2) page2.style.display='flex'; 
   }); 
@@ -729,6 +861,7 @@ if (pracButton) {
     inputBuffer = '';
     timerStarted = false;
     updateInputDisplay();
+    stopPage3KeyboardLoop();
     if (mpCamera) stopMediapipeHands();
     if (page3) page3.style.display='none';
     if (page4) page4.style.display='flex';
@@ -737,6 +870,7 @@ if (pracButton) {
     loadWords(words);
     setTimeout(() => {
       startMediapipeHands();
+      startPage4KeyboardLoop();
     }, 100);
   }); 
 }
@@ -747,6 +881,7 @@ if (stopbutton) {
     console.log('stopbutton clicked');
     stopTimer();
     stopMediapipeHands();
+    stopPage4KeyboardLoop();
     resetGameState();
     if (page4) page4.style.display='none';
     if (page1) page1.style.display='flex';
@@ -783,6 +918,8 @@ let mpCanvasFallbackTimer = null;
 let sending = false;
 let handsInitialized = false;
 let timerStarted = false;
+let page3KeyboardLoopId = null;  // ページ3用のキーボード描画ループID
+let page4KeyboardLoopId = null;  // ページ4用のキーボード描画ループID
 
 window.latestFingertips = {};
 window.mpUseMirror = true;
@@ -862,10 +999,8 @@ function onHandsResults(results){
   // ページに応じた要素を取得
   const isPage4Active = (page4 && page4.style.display !== 'none');
   let canvasId = isPage4Active ? 'mp_output_canvas_p4' : 'mp_output_canvas_p3';
-  let statusId = isPage4Active ? 'mp_status_p4' : 'mp_status_p3';
   
   const canvas = document.getElementById(canvasId);
-  const status = document.getElementById(statusId);
   if (!canvas) {
     console.error('onHandsResults: Canvas not found', canvasId);
     return;
@@ -962,7 +1097,6 @@ function startMediapipeHands(){
   if (typeof Hands === 'undefined' || typeof Camera === 'undefined' || typeof drawConnectors === 'undefined') {
     console.warn('startMediapipeHands: Mediapipe libraries not loaded yet. Retrying...');
     console.warn('  Hands:', typeof Hands, 'Camera:', typeof Camera, 'drawConnectors:', typeof drawConnectors);
-    const status = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
     if (status) status.textContent = 'ライブラリ読み込み中...';
     setTimeout(() => startMediapipeHands(), 200);
     return;
@@ -973,12 +1107,10 @@ function startMediapipeHands(){
   if (isPage4Active) {
     video = document.getElementById('mp_input_video_p4');
     canvas = document.getElementById('mp_output_canvas_p4');
-    status = document.getElementById('mp_status_p4');
     console.log('Using page4 elements: video=' + (video ? 'found' : 'NOT FOUND') + ', canvas=' + (canvas ? 'found' : 'NOT FOUND'));
   } else if (isPage3Active) {
     video = document.getElementById('mp_input_video_p3');
     canvas = document.getElementById('mp_output_canvas_p3');
-    status = document.getElementById('mp_status_p3');
     console.log('Using page3 elements: video=' + (video ? 'found' : 'NOT FOUND') + ', canvas=' + (canvas ? 'found' : 'NOT FOUND'));
   } else {
     console.error('startMediapipeHands: Neither page3 nor page4 is active');
@@ -1053,7 +1185,6 @@ function startMediapipeHands(){
   });
   
   mpCamera.start().then(()=>{
-    if (status) status.textContent = 'カメラ起動成功';
     console.log('mpCamera.start() succeeded');
     
     let handsInitTimeout = setTimeout(() => {
@@ -1084,14 +1215,11 @@ function startMediapipeHands(){
         
         console.log('✓ mpHands initialized successfully');
         handsInitialized = true;
-        if (status) status.textContent = 'カメラ接続成功。手を検出中...';
-        
         // Test: Force send one frame to verify it works
         console.log('Hands init: Ready to receive frames');
         
       } catch (err) {
         console.error('✗ Failed to initialize Hands:', err, err.stack);
-        if (status) status.textContent = 'Hands 初期化失敗: ' + err.message;
         handsInitialized = false;
       }
     }, 300);
@@ -1112,14 +1240,6 @@ function startMediapipeHands(){
               ctx.restore();
             } else {
               ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
-            }
-            const st = document.getElementById('mp_status_p4') || document.getElementById('mp_status_p3');
-            if (st) {
-              if (mpHands) {
-                st.textContent = 'video再生中（手検出待機中...）';
-              } else {
-                st.textContent = 'Hands 初期化中...';
-              }
             }
           }
         } catch(e) {
@@ -1150,14 +1270,124 @@ function stopMediapipeHands(){
   
   if (isPage4Active) {
     const canvas = document.getElementById('mp_output_canvas_p4');
-    const status = document.getElementById('mp_status_p4');
     if (canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
     if (status) status.textContent = 'カメラ停止';
   } else if (isPage3Active) {
     const canvas = document.getElementById('mp_output_canvas_p3');
-    const status = document.getElementById('mp_status_p3');
     if (canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
     if (status) status.textContent = 'カメラ停止';
+  }
+}
+
+// ページ3用のキーボード描画ループを開始
+function startPage3KeyboardLoop() {
+  if (page3KeyboardLoopId) {
+    console.log('Page3 keyboard loop already running');
+    return;
+  }
+  
+  const canvas = document.getElementById('mp_output_canvas_p3');
+  const video = document.getElementById('mp_input_video_p3');
+  if (!canvas || !video) {
+    console.warn('startPage3KeyboardLoop: Canvas or video not found');
+    return;
+  }
+  
+  console.log('startPage3KeyboardLoop: Starting keyboard display loop');
+  
+  page3KeyboardLoopId = setInterval(() => {
+    if (!canvas || !video) return;
+    
+    try {
+      const ctx = canvas.getContext('2d');
+      
+      // ビデオを背景として描画
+      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+        const actualW = video.videoWidth;
+        const actualH = video.videoHeight;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (window.mpUseMirror) {
+          ctx.save();
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
+          ctx.restore();
+        } else {
+          ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
+        }
+      }
+      
+      // キーボードレイアウトを描画
+      drawKeyboardLayout(canvas);
+    } catch (err) {
+      console.error('Page3 keyboard loop error:', err);
+    }
+  }, 50); // 20fps
+}
+
+// ページ3用のキーボード描画ループを停止
+function stopPage3KeyboardLoop() {
+  if (page3KeyboardLoopId) {
+    console.log('stopPage3KeyboardLoop: Stopping keyboard display loop');
+    clearInterval(page3KeyboardLoopId);
+    page3KeyboardLoopId = null;
+  }
+}
+
+// ページ4用のキーボード描画ループを開始
+function startPage4KeyboardLoop() {
+  if (page4KeyboardLoopId) {
+    console.log('Page4 keyboard loop already running');
+    return;
+  }
+  
+  const canvas = document.getElementById('mp_output_canvas_p4');
+  const video = document.getElementById('mp_input_video_p4');
+  if (!canvas || !video) {
+    console.warn('startPage4KeyboardLoop: Canvas or video not found');
+    return;
+  }
+  
+  console.log('startPage4KeyboardLoop: Starting keyboard display loop');
+  
+  page4KeyboardLoopId = setInterval(() => {
+    if (!canvas || !video) return;
+    
+    try {
+      const ctx = canvas.getContext('2d');
+      
+      // ビデオを背景として描画
+      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+        const actualW = video.videoWidth;
+        const actualH = video.videoHeight;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (window.mpUseMirror) {
+          ctx.save();
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
+          ctx.restore();
+        } else {
+          ctx.drawImage(video, 0, Math.round(actualH / 4), actualW, Math.round(actualH * 3 / 4), 0, 0, canvas.width, canvas.height);
+        }
+      }
+      
+      // キーボードレイアウトを描画
+      drawKeyboardLayout(canvas);
+    } catch (err) {
+      console.error('Page4 keyboard loop error:', err);
+    }
+  }, 50); // 20fps
+}
+
+// ページ4用のキーボード描画ループを停止
+function stopPage4KeyboardLoop() {
+  if (page4KeyboardLoopId) {
+    console.log('stopPage4KeyboardLoop: Stopping keyboard display loop');
+    clearInterval(page4KeyboardLoopId);
+    page4KeyboardLoopId = null;
   }
 }
 

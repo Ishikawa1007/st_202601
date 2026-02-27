@@ -1,9 +1,26 @@
 <html lang="ja">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Cache-Control" content="no-cache">
     <meta charset="UTF-8">
+    <meta name="theme-color" content="#2196F3">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="スマホタイピング">
     <title>スマホタイピング</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%232196F3' width='192' height='192'/><text x='50%' y='50%' font-size='100' fill='white' text-anchor='middle' dominant-baseline='middle' font-family='Arial'>タ</text></svg>">
     <link rel="stylesheet" href="st_main.css">
+    <script>
+        // Screen Orientation API で横向きに固定
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape-primary').catch(err => {
+                console.log('Orientation lock not supported:', err);
+            });
+        }
+    </script>
     <!-- wanakana -->
     <script src="https://unpkg.com/wanakana@4.0.2/wanakana.min.js"></script>
     <!-- Mediapipe - Local files -->
@@ -14,7 +31,7 @@
 <body>
     <div id="page1" class="page" style="display:flex;">
         <header>
-            <h1 class="title">スマホタイピング</h1>
+            <h1 class="title">スマホタイピング_test</h1>
         </header>
         <button type="button" class="stbutton">
             あそぶ
@@ -49,29 +66,24 @@
         <header>
             <h2 class="title">カメラをかくにんしよう</h2>
         </header>
-        <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-        <script>eruda.init();</script>
         <!--指が反応しているか、キーが対応して動くか確認(MPにて)**-->
         <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; margin-top:0.5rem;">
             <!-- デバッグ用: video を表示 -->
             <video id="mp_input_video_p3" class="mp_input_video_p3" style="width:200px;height:150px;background:#000;border:1px solid #aaa;" autoplay muted playsinline></video>
             <canvas id="mp_output_canvas_p3" class="mp_output_canvas_p3 mp_canvas_half" width="640" height="240" style="border:1px solid #ccc; background:#000;"></canvas>
-            <div id="mp_status_p3" style="font-size:0.9rem; color:#333;">カメラ未接続</div>
         </div>
-        <div class="buttonRow">
-            <button type="button" class="backbutton_b">
-                もどる
-            </button>
-            <button type="button" class="pracbutton">
-                OK!
-            </button>
-        </div>
+        <button type="button" class="backbutton_b">
+            もどる
+        </button>
+        <button type="button" class="pracbutton">
+            OK!
+        </button>
     </div>
     <div id="page4" class="page" style="display:none;">
         <!--ゲーム開始-->
         
-        <div class="wordDisplay" style="text-align:center; margin:1rem 0;">
-            <p id="wordLabel" class="wordLabel" style="font-size:2rem; margin:0.5rem 0;"></p>
+        <div class="wordDisplay" style="text-align:center; margin:0;">
+            <p id="wordLabel" class="wordLabel" style="font-size:2rem; margin:0;"></p>
             <p id="romajiLabel" class="romajiLabel" style="font-size:1.2rem; color:#666; margin:0;"></p>
         </div>
         <div class="timer">
@@ -79,12 +91,8 @@
         </div>
         <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; margin-top:0.5rem;">
             <!-- デバッグ用: video を表示 -->
-
         <video id="mp_input_video_p4" class="mp_input_video_p4" style="width:200px;height:150px;background:#000;border:1px solid #aaa;" autoplay muted playsinline></video>
         <canvas id="mp_output_canvas_p4" class="mp_output_canvas_p4 mp_canvas_half" width="640" height="240" style="border:1px solid #ccc; background:#000;"></canvas>
-            <div id="mp_status_p4" style="font-size:0.9rem; color:#333;">カメラ未接続</div>
-            <div id="inputBuffer" style="font-size:1.5rem; color:#000; background:#ccc; padding:0.5rem; min-height:2rem; border-radius:5px; min-width:200px; text-align:center;">入力:</div>
-
             
         </div>
         <div style="display:flex; align-items:center; justify-content:center; gap:1rem;">
@@ -105,11 +113,11 @@
             <td id="point"></td>
         </tr>
         <tr>
-            <td>レベル</td>
-            <td id="revel"></td>
+            <td>ランク</td>
+            <td id="rank"></td>
         </tr>
         <tr>
-            <td>ながさ</td>
+            <td>ことば</td>
             <td id="length"></td>
         </tr>
         <tr>
@@ -150,6 +158,25 @@
                 console.error('Failed to load Mediapipe after timeout');
             }
         });
+    </script>
+    <script>
+        // Service Worker登録
+        (function(){
+            // PWA (standalone) 表示のときのみ Service Worker を登録する
+            function isPWA() {
+                return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                    || (window.navigator.standalone === true)
+                    || (document.referrer && document.referrer.startsWith('android-app://'));
+            }
+
+            if ('serviceWorker' in navigator && isPWA()) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => console.log('Service Worker登録成功:', registration))
+                    .catch(error => console.error('Service Worker登録失敗:', error));
+            } else {
+                console.log('Service Worker登録スキップ（PWAモードでありません）');
+            }
+        })();
     </script>
 </body>
 </html>
