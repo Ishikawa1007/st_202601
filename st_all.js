@@ -834,6 +834,7 @@ if (prepButton) {
     if (page3) { 
       page3.style.display='flex'; 
       startMediapipeHands(); 
+      startPage3KeyboardLoop();
     } 
   }); 
 }
@@ -844,7 +845,8 @@ if (backButton_b) {
     console.log('backButton_b clicked'); 
     if (page3) { 
       page3.style.display='none'; 
-      stopMediapipeHands(); 
+      stopMediapipeHands();
+      stopPage3KeyboardLoop();
     } 
     if (page2) page2.style.display='flex'; 
   }); 
@@ -859,6 +861,7 @@ if (pracButton) {
     inputBuffer = '';
     timerStarted = false;
     updateInputDisplay();
+    stopPage3KeyboardLoop();
     if (mpCamera) stopMediapipeHands();
     if (page3) page3.style.display='none';
     if (page4) page4.style.display='flex';
@@ -867,6 +870,7 @@ if (pracButton) {
     loadWords(words);
     setTimeout(() => {
       startMediapipeHands();
+      startPage4KeyboardLoop();
     }, 100);
   }); 
 }
@@ -877,6 +881,7 @@ if (stopbutton) {
     console.log('stopbutton clicked');
     stopTimer();
     stopMediapipeHands();
+    stopPage4KeyboardLoop();
     resetGameState();
     if (page4) page4.style.display='none';
     if (page1) page1.style.display='flex';
@@ -913,6 +918,8 @@ let mpCanvasFallbackTimer = null;
 let sending = false;
 let handsInitialized = false;
 let timerStarted = false;
+let page3KeyboardLoopId = null;  // ページ3用のキーボード描画ループID
+let page4KeyboardLoopId = null;  // ページ4用のキーボード描画ループID
 
 window.latestFingertips = {};
 window.mpUseMirror = true;
@@ -1269,6 +1276,78 @@ function stopMediapipeHands(){
     const canvas = document.getElementById('mp_output_canvas_p3');
     if (canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
     if (status) status.textContent = 'カメラ停止';
+  }
+}
+
+// ページ3用のキーボード描画ループを開始
+function startPage3KeyboardLoop() {
+  if (page3KeyboardLoopId) {
+    console.log('Page3 keyboard loop already running');
+    return;
+  }
+  
+  const canvas = document.getElementById('mp_output_canvas_p3');
+  if (!canvas) {
+    console.warn('startPage3KeyboardLoop: Canvas not found');
+    return;
+  }
+  
+  console.log('startPage3KeyboardLoop: Starting keyboard display loop');
+  
+  page3KeyboardLoopId = setInterval(() => {
+    if (!canvas) return;
+    
+    try {
+      // キーボードレイアウトを描画
+      drawKeyboardLayout(canvas);
+    } catch (err) {
+      console.error('Page3 keyboard loop error:', err);
+    }
+  }, 50); // 20fps
+}
+
+// ページ3用のキーボード描画ループを停止
+function stopPage3KeyboardLoop() {
+  if (page3KeyboardLoopId) {
+    console.log('stopPage3KeyboardLoop: Stopping keyboard display loop');
+    clearInterval(page3KeyboardLoopId);
+    page3KeyboardLoopId = null;
+  }
+}
+
+// ページ4用のキーボード描画ループを開始
+function startPage4KeyboardLoop() {
+  if (page4KeyboardLoopId) {
+    console.log('Page4 keyboard loop already running');
+    return;
+  }
+  
+  const canvas = document.getElementById('mp_output_canvas_p4');
+  if (!canvas) {
+    console.warn('startPage4KeyboardLoop: Canvas not found');
+    return;
+  }
+  
+  console.log('startPage4KeyboardLoop: Starting keyboard display loop');
+  
+  page4KeyboardLoopId = setInterval(() => {
+    if (!canvas) return;
+    
+    try {
+      // キーボードレイアウトを描画（手検出ありの時は onHandsResults で上書きされる）
+      drawKeyboardLayout(canvas);
+    } catch (err) {
+      console.error('Page4 keyboard loop error:', err);
+    }
+  }, 50); // 20fps
+}
+
+// ページ4用のキーボード描画ループを停止
+function stopPage4KeyboardLoop() {
+  if (page4KeyboardLoopId) {
+    console.log('stopPage4KeyboardLoop: Stopping keyboard display loop');
+    clearInterval(page4KeyboardLoopId);
+    page4KeyboardLoopId = null;
   }
 }
 
